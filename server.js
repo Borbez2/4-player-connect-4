@@ -40,6 +40,7 @@ function createRoom(opts) {
     gameMode: opts.gameMode === "3d" ? "3d" : "classic",
     code: opts.isPublic ? null : generateCode(),
     slots: [null, null, null, null],
+    customizations: [null, null, null, null],
     board: null,
     turn: 0,
     phase: "lobby",
@@ -176,8 +177,8 @@ function buildRoomState(room) {
     hostSlot: hostSlot(room),
     slots: room.slots.map((id, i) => ({
       occupied: id !== null,
-      name: PLAYER_META[i].name,
-      color: PLAYER_META[i].color,
+      name: room.customizations[i]?.name || PLAYER_META[i].name,
+      color: room.customizations[i]?.color || PLAYER_META[i].color,
     })),
     board: room.board,
     phase: room.phase,
@@ -339,6 +340,19 @@ io.on("connection", (socket) => {
     io.to(room.id).emit("roomState", buildRoomState(room));
   });
 
+  // ── Set Player Customization ──
+  socket.on("setPlayerCustomization", ({ name, color }) => {
+    const room = rooms.get(socket.data.roomId);
+    if (!room || room.phase !== "lobby") return;
+    const si = socket.data.slotIndex;
+    if (si === null || si === undefined) return;
+    const safeName = (typeof name === "string" ? name.slice(0, 20).trim() : "") || PLAYER_META[si].name;
+    const colorStr = typeof color === "string" ? color.trim() : "";
+    const safeColor = /^#[0-9a-fA-F]{6}$/.test(colorStr) ? colorStr : PLAYER_META[si].color;
+    room.customizations[si] = { name: safeName, color: safeColor };
+    io.to(room.id).emit("roomState", buildRoomState(room));
+  });
+
   // ── Disconnect ──
   socket.on("disconnect", () => leaveRoom(socket));
 
@@ -348,7 +362,10 @@ io.on("connection", (socket) => {
     const room = rooms.get(rid);
     if (!room) return;
     const si = sock.data.slotIndex;
-    if (si !== null && si !== undefined) room.slots[si] = null;
+    if (si !== null && si !== undefined) {
+      room.slots[si] = null;
+      room.customizations[si] = null;
+    }
     sock.data.roomId = null;
     sock.data.slotIndex = null;
     sock.leave(rid);
