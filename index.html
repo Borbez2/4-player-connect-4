@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Connect 4 - Local Multiplayer</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 1.5rem;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    /* lobby */
+    #lobby {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .slot-list {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .slot-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: #1e293b;
+      border-radius: 0.75rem;
+      padding: 0.65rem 1rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .slot-dot {
+      width: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .slot-label { flex: 1; }
+
+    .slot-status {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #64748b;
+    }
+
+    .slot-status.taken { color: #94a3b8; }
+    .slot-status.you   { color: #818cf8; }
+
+    .btn {
+      padding: 0.6rem 1.6rem;
+      border: none;
+      border-radius: 0.75rem;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-primary:not(:disabled):hover { background: #818cf8; }
+
+    .btn-secondary { background: #334155; color: #cbd5e1; }
+    .btn-secondary:not(:disabled):hover { background: #475569; }
+
+    .hint { font-size: 0.85rem; color: #64748b; text-align: center; }
+
+    /* game */
+    #game { display: none; flex-direction: column; align-items: center; gap: 1.25rem; }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 1.15rem;
+      font-weight: 700;
+      min-height: 2rem;
+    }
+
+    .status-dot {
+      width: 1.1rem;
+      height: 1.1rem;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .turn-dots {
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    .turn-dot {
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: 50%;
+      opacity: 0.3;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+
+    .turn-dot.active {
+      opacity: 1;
+      transform: scale(1.35);
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
+
+    /* board */
+    #board-wrap {
+      background: #1e293b;
+      border-radius: 1.25rem;
+      padding: 0.75rem;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+    }
+
+    #board {
+      display: grid;
+      gap: 5px;
+    }
+
+    .cell {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: #0f172a;
+      border: none;
+      cursor: pointer;
+      transition: background 0.12s, transform 0.1s, box-shadow 0.12s;
+      position: relative;
+    }
+
+    @media (max-width: 540px) {
+      .cell { width: 38px; height: 38px; }
+    }
+
+    .cell:hover.droppable { background: #334155; }
+    .cell.filled { cursor: default; }
+    .cell.winning {
+      transform: scale(1.12);
+      box-shadow: 0 0 0 3px #fff, 0 0 14px 4px currentColor;
+      z-index: 1;
+    }
+
+    .game-buttons { display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <h1>Connect 4</h1>
+
+  <!-- Lobby -->
+  <div id="lobby">
+    <div class="slot-list" id="slot-list"></div>
+    <p class="hint" id="lobby-hint">Waiting for players&hellip;</p>
+    <button class="btn btn-primary" id="btn-start" disabled>Start Game</button>
+  </div>
+
+  <!-- Game -->
+  <div id="game">
+    <div class="status-bar" id="status-bar"></div>
+    <div class="turn-dots" id="turn-dots"></div>
+    <div id="board-wrap"><div id="board"></div></div>
+    <div class="game-buttons" id="game-buttons"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // constants
+  const ROWS = 7;
+  const COLS = 9;
+
+  // state
+  let mySlot = null;   // assigned slot index (0-3)
+  let state  = null;   // last stateUpdate payload
+
+  // socket
+  const socket = io();
+
+  socket.on("connect_error", () => showOverlay("Cannot connect to server."));
+
+  socket.on("rejected", ({ reason }) => {
+    showOverlay(reason);
+  });
+
+  socket.on("assigned", ({ slotIndex }) => {
+    mySlot = slotIndex;
+  });
+
+  socket.on("stateUpdate", (newState) => {
+    state = newState;
+    render();
+  });
+
+  // render
+  function render() {
+    if (!state) return;
+
+    if (state.phase === "lobby") {
+      renderLobby();
+      showSection("lobby");
+    } else {
+      renderGame();
+      showSection("game");
+    }
+  }
+
+  function showSection(which) {
+    document.getElementById("lobby").style.display = which === "lobby" ? "flex" : "none";
+    document.getElementById("game").style.display  = which === "game"  ? "flex" : "none";
+  }
+
+  // lobby
+  function renderLobby() {
+    const list = document.getElementById("slot-list");
+    list.innerHTML = "";
+
+    state.slots.forEach((slot, i) => {
+      const row = document.createElement("div");
+      row.className = "slot-row";
+
+      const dot = document.createElement("div");
+      dot.className = "slot-dot";
+      dot.style.background = slot.color;
+
+      const label = document.createElement("div");
+      label.className = "slot-label";
+      label.textContent = slot.name;
+
+      const status = document.createElement("div");
+      if (!slot.occupied) {
+        status.className = "slot-status";
+        status.textContent = "open";
+      } else if (i === mySlot) {
+        status.className = "slot-status you";
+        status.textContent = "you";
+      } else {
+        status.className = "slot-status taken";
+        status.textContent = "joined";
+      }
+
+      row.append(dot, label, status);
+      list.appendChild(row);
+    });
+
+    // Hint
+    const hintEl = document.getElementById("lobby-hint");
+    const occupied = state.slots.filter((s) => s.occupied).length;
+    if (mySlot === 0) {
+      hintEl.textContent =
+        occupied >= 2
+          ? `${occupied} players ready - you can start!`
+          : "Waiting for at least one more player...";
+    } else {
+      hintEl.textContent = "Waiting for the host to start the game…";
+    }
+
+    // Start button (host only, ≥2 players)
+    const btnStart = document.getElementById("btn-start");
+    if (mySlot === 0) {
+      btnStart.style.display = "";
+      btnStart.disabled = occupied < 2;
+    } else {
+      btnStart.style.display = "none";
+    }
+  }
+
+  // game
+  function renderGame() {
+    renderStatusBar();
+    renderTurnDots();
+    renderBoard();
+    renderGameButtons();
+  }
+
+  function renderStatusBar() {
+    const bar = document.getElementById("status-bar");
+    bar.innerHTML = "";
+
+    if (state.phase === "ended") {
+      if (state.winResult) {
+        const ws = state.slots[state.winResult.slotIndex];
+        const dot = makeDot(ws.color);
+        const msg = document.createTextNode(`${ws.name} wins!`);
+        bar.style.color = ws.color;
+        bar.append(dot, msg);
+      } else {
+        bar.style.color = "#94a3b8";
+        bar.textContent = "It's a draw!";
+      }
+    } else {
+      const cs = state.slots[state.currentSlot];
+      if (!cs || !cs.occupied) return;
+      const dot = makeDot(cs.color);
+      const isMe = state.currentSlot === mySlot;
+      const msg = document.createTextNode(isMe ? "Your turn!" : `${cs.name}'s turn`);
+      bar.style.color = cs.color;
+      bar.append(dot, msg);
+    }
+  }
+
+  function makeDot(color) {
+    const d = document.createElement("div");
+    d.className = "status-dot";
+    d.style.background = color;
+    return d;
+  }
+
+  function renderTurnDots() {
+    const container = document.getElementById("turn-dots");
+    container.innerHTML = "";
+    state.slots.forEach((slot, i) => {
+      if (!slot.occupied) return;
+      const d = document.createElement("div");
+      d.className = "turn-dot" + (i === state.currentSlot && state.phase === "playing" ? " active" : "");
+      d.style.background = slot.color;
+      container.appendChild(d);
+    });
+  }
+
+  function renderBoard() {
+    const boardEl = document.getElementById("board");
+    boardEl.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
+
+    // Build win cell set
+    const winSet = new Set();
+    if (state.winResult) {
+      state.winResult.cells.forEach(([r, c]) => winSet.add(`${r},${c}`));
+    }
+
+    const isMyTurn = state.phase === "playing" && state.currentSlot === mySlot;
+
+    // Re-use or recreate cells
+    const needed = ROWS * COLS;
+    while (boardEl.children.length < needed) boardEl.appendChild(document.createElement("button"));
+    while (boardEl.children.length > needed) boardEl.removeChild(boardEl.lastChild);
+
+    let idx = 0;
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const cell = boardEl.children[idx++];
+        const value = state.board[r][c]; // null | slotIndex
+
+        // Reset classes
+        cell.className = "cell";
+        cell.style.background = "";
+        cell.style.color = "";
+        cell.style.boxShadow = "";
+        cell.removeAttribute("data-col");
+
+        if (value !== null) {
+          cell.classList.add("filled");
+          cell.style.background = state.slots[value].color;
+          cell.disabled = true;
+
+          if (winSet.has(`${r},${c}`)) {
+            cell.classList.add("winning");
+            cell.style.color = state.slots[value].color;
+          }
+        } else {
+          cell.disabled = false;
+          if (isMyTurn) {
+            cell.classList.add("droppable");
+            cell.setAttribute("data-col", c);
+          } else {
+            cell.disabled = true;
+          }
+        }
+      }
+    }
+  }
+
+  function renderGameButtons() {
+    const container = document.getElementById("game-buttons");
+    container.innerHTML = "";
+
+    if (state.phase === "ended" && mySlot === 0) {
+      const btn = document.createElement("button");
+      btn.className = "btn btn-primary";
+      btn.textContent = "Rematch";
+      btn.addEventListener("click", () => socket.emit("rematch"));
+      container.appendChild(btn);
+    }
+  }
+
+  // board click (delegated)
+  document.getElementById("board").addEventListener("click", (e) => {
+    const cell = e.target.closest(".cell[data-col]");
+    if (!cell) return;
+    const col = parseInt(cell.getAttribute("data-col"), 10);
+    socket.emit("dropDisc", { col });
+  });
+
+  // start button
+  document.getElementById("btn-start").addEventListener("click", () => {
+    socket.emit("startGame");
+  });
+
+  // show a full-screen message (connection errors, rejection)
+  function showOverlay(message) {
+    let ov = document.getElementById("overlay");
+    if (!ov) {
+      ov = document.createElement("div");
+      ov.id = "overlay";
+      Object.assign(ov.style, {
+        position: "fixed", inset: "0",
+        background: "rgba(15,23,42,0.92)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: "1.2rem", fontWeight: "700", color: "#f87171",
+        zIndex: "999",
+      });
+      document.body.appendChild(ov);
+    }
+    ov.textContent = message;
+  }
+}());
+</script>
+</body>
+</html>
