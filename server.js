@@ -5,7 +5,7 @@ const path = require("path");
 const os = require("os");
 const crypto = require("crypto");
 
-const PORT = 3000;
+const PORT = 4321;
 const MAX_PLAYERS = 4;
 
 const PLAYER_META = [
