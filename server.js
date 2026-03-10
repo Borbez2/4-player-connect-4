@@ -378,8 +378,12 @@ server.listen(PORT, "0.0.0.0", () => {
       if (n.family === "IPv4" && !n.internal) addrs.push(n.address);
     }
   }
+  // Prefer a typical LAN address (192.168.x or 10.x), otherwise use the first available
+  const networkAddr =
+    addrs.find(a => a.startsWith("192.168.") || a.startsWith("10.")) ||
+    addrs[0];
   console.log(`\n  Connect 4 server running!\n`);
   console.log(`  Local:   http://localhost:${PORT}`);
-  addrs.forEach(a => console.log(`  Network: http://${a}:${PORT}`));
+  if (networkAddr) console.log(`  Network: http://${networkAddr}:${PORT}`);
   console.log(`\n  Share the Network URL with players on the same WiFi.\n`);
 });

@@ -3,363 +3,264 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>4-Player Connect 4</title>
+  <title>Connect 4 Arena</title>
   <style>
     :root {
-      --bg-1: #102d42;
-      --bg-2: #194f64;
-      --panel: rgba(11, 27, 41, 0.78);
-      --panel-border: rgba(255, 255, 255, 0.14);
-      --text: #e7f7ff;
-      --muted: #95b8c9;
-      --accent: #ffb703;
-      --danger: #ef476f;
-      --ok: #06d6a0;
-      --shadow: 0 18px 50px rgba(2, 12, 19, 0.45);
+      --bg: #0a1628;
+      --surface: rgba(15, 28, 48, 0.85);
+      --border: rgba(255, 255, 255, 0.1);
+      --text: #e4edf5;
+      --muted: #7a93a8;
+      --accent: #fbbf24;
+      --danger: #ef4444;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; margin: 0; }
 
     body {
-      margin: 0;
       min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
       color: var(--text);
-      font-family: "Avenir Next", "Trebuchet MS", "Gill Sans", sans-serif;
-      background:
-        radial-gradient(circle at 12% 10%, rgba(255, 183, 3, 0.3), transparent 40%),
-        radial-gradient(circle at 88% 16%, rgba(6, 214, 160, 0.2), transparent 34%),
-        radial-gradient(circle at 40% 85%, rgba(17, 138, 178, 0.22), transparent 40%),
-        linear-gradient(135deg, var(--bg-1), var(--bg-2));
       display: flex;
       justify-content: center;
-      padding: 20px;
+      padding: 16px;
     }
 
     .app {
-      width: min(1180px, 100%);
+      width: 100%;
+      max-width: 700px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
-    }
-
-    .title {
-      margin: 0;
-      font-family: "Rockwell", "Georgia", serif;
-      font-size: clamp(1.8rem, 4vw, 2.8rem);
-      letter-spacing: 0.03em;
-      text-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-    }
-
-    .subtitle {
-      margin-top: 6px;
-      margin-bottom: 0;
-      color: var(--muted);
-    }
-
-    .panel-grid {
-      display: grid;
-      gap: 14px;
-      grid-template-columns: repeat(12, 1fr);
-    }
-
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--panel-border);
-      border-radius: 16px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(6px);
-      padding: 14px;
-    }
-
-    .panel h2,
-    .panel h3 {
-      margin-top: 0;
-      margin-bottom: 10px;
-      font-weight: 650;
-    }
-
-    .span-4 {
-      grid-column: span 4;
-    }
-
-    .span-8 {
-      grid-column: span 8;
-    }
-
-    .span-12 {
-      grid-column: span 12;
-    }
-
-    .form-row {
-      margin-bottom: 10px;
-      display: grid;
-      gap: 6px;
-    }
-
-    label {
-      font-size: 0.92rem;
-      color: #cce8f7;
-    }
-
-    input,
-    select,
-    button {
-      width: 100%;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 10px;
-      padding: 10px 12px;
-      font: inherit;
-      color: #082538;
-    }
-
-    input,
-    select {
-      background: #e9f6ff;
-    }
-
-    button {
-      background: linear-gradient(180deg, #f7bf2a, #e89b1c);
-      color: #2c1f00;
-      font-weight: 650;
-      cursor: pointer;
-      transition: transform 120ms ease, filter 120ms ease;
-    }
-
-    button:hover:not(:disabled) {
-      transform: translateY(-1px);
-      filter: brightness(1.05);
-    }
-
-    button:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
-
-    .btn-secondary {
-      background: linear-gradient(180deg, #52c8ee, #2d99c3);
-      color: #042336;
-    }
-
-    .btn-danger {
-      background: linear-gradient(180deg, #ff8fa7, #ef476f);
-      color: #360713;
-    }
-
-    .btn-ghost {
-      background: transparent;
-      color: var(--text);
-      border-color: rgba(255, 255, 255, 0.28);
-    }
-
-    .error,
-    .notice {
-      margin-top: 8px;
-      min-height: 1.2em;
-      font-size: 0.9rem;
-    }
-
-    .error {
-      color: #ffafbf;
-    }
-
-    .notice {
-      color: #9de9cd;
-    }
-
-    .room-list {
-      display: grid;
-      gap: 8px;
-      max-height: 340px;
-      overflow: auto;
-      padding-right: 2px;
-    }
-
-    .room-item {
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 10px;
-      padding: 10px;
-      display: grid;
-      gap: 8px;
-      grid-template-columns: 1fr auto;
-      align-items: center;
-      background: rgba(9, 26, 39, 0.55);
-    }
-
-    .room-item strong {
-      font-size: 1rem;
-    }
-
-    .meta {
-      color: var(--muted);
-      font-size: 0.9rem;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    #roomView {
-      display: grid;
-      gap: 14px;
-    }
-
-    .top-bar {
-      display: grid;
       gap: 12px;
-      grid-template-columns: 2fr 1fr;
-      align-items: start;
     }
 
-    .room-header {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 10px;
-    }
+    /* ── Lobby ── */
+    .lobby-header { text-align: center; padding: 32px 0 16px; }
+    .lobby-header h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; }
+    .lobby-header p { color: var(--muted); margin-top: 4px; }
 
-    .chip {
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      border-radius: 999px;
-      padding: 4px 10px;
-      font-size: 0.84rem;
-      color: #d9f0ff;
-      background: rgba(0, 0, 0, 0.16);
-    }
-
-    .status {
-      margin-top: 8px;
-      color: #ffe8af;
-      font-size: 1rem;
-      font-weight: 550;
-    }
-
-    .controls {
-      display: grid;
-      gap: 8px;
-      align-content: start;
-    }
-
-    .players,
-    .scoreboard {
-      display: grid;
-      gap: 8px;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-
-    .slot-card {
-      border: 1px solid rgba(255, 255, 255, 0.16);
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 10px;
-      background: rgba(6, 19, 28, 0.56);
-      min-height: 74px;
-      display: grid;
-      gap: 4px;
-      align-content: center;
+      padding: 16px;
     }
 
-    .slot-card.me {
-      border-color: rgba(255, 255, 255, 0.55);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
-    }
-
-    .slot-name {
-      font-weight: 700;
-    }
-
-    .slot-muted {
-      color: var(--muted);
+    .card h3 {
       font-size: 0.88rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
-    .board-wrap {
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 16px;
-      padding: 12px;
-      background: rgba(4, 15, 24, 0.65);
-      min-height: 380px;
-    }
+    .lobby-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-    .classic-controls {
-      display: grid;
+    .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+    .form-group label { font-size: 0.82rem; color: var(--muted); }
+
+    input, select {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: var(--text);
+      font: inherit;
+      font-size: 0.9rem;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
+    option { background: #1a2a40; }
+
+    button {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    button:hover:not(:disabled) { opacity: 0.85; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-secondary { background: rgba(255, 255, 255, 0.12); color: var(--text); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: 0.82rem; }
+
+    .error-msg { color: var(--danger); font-size: 0.82rem; margin-top: 4px; min-height: 1em; }
+    .hidden { display: none !important; }
+
+    .room-list { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; }
+    .room-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.2);
+    }
+    .room-item-info { font-size: 0.9rem; }
+    .room-item-meta { color: var(--muted); font-size: 0.78rem; }
+    .empty-msg { color: var(--muted); font-size: 0.85rem; }
+
+    /* ── Room View ── */
+    .room-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .room-info h2 { font-size: 1.15rem; font-weight: 700; }
+    .room-chips { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+    .chip {
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .status-line {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-top: 6px;
+      color: var(--accent);
+      min-height: 1.3em;
+    }
+    .room-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* Players bar */
+    .players-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .player-badge {
+      display: flex;
+      align-items: center;
       gap: 6px;
-      grid-template-columns: repeat(9, minmax(0, 1fr));
-      margin-bottom: 8px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .player-badge.me { border-color: rgba(255, 255, 255, 0.35); }
+    .player-badge.active-turn { border-color: var(--accent); box-shadow: 0 0 8px rgba(251, 191, 36, 0.3); }
+    .player-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .player-wins { color: var(--muted); font-size: 0.75rem; }
+
+    /* ── Classic Board ── */
+    .board-container { display: flex; justify-content: center; padding: 8px 0; }
+
+    .classic-board {
+      display: flex;
+      flex-direction: column;
+      max-width: 500px;
+      width: 100%;
+    }
+
+    .classic-drop-row {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      gap: 2px;
+      margin-bottom: 4px;
+      padding: 0 6px;
     }
 
     .drop-btn {
-      padding: 8px 0;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      background: rgba(255, 255, 255, 0.17);
-      color: #e8f8ff;
-      font-weight: 650;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--muted);
+      font-size: 1.1rem;
+      padding: 4px 0;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.15s;
     }
+    .drop-btn:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--border);
+      color: var(--text);
+    }
+    .drop-btn:disabled { opacity: 0.2; cursor: default; }
 
     .classic-grid {
       display: grid;
-      gap: 6px;
-      grid-template-columns: repeat(9, minmax(0, 1fr));
-      align-items: center;
-      justify-items: center;
-      padding: 10px;
-      border-radius: 14px;
-      background: linear-gradient(180deg, rgba(37, 94, 128, 0.86), rgba(22, 64, 89, 0.9));
+      grid-template-columns: repeat(9, 1fr);
+      gap: 2px;
+      background: linear-gradient(180deg, #1a3a5c, #15304d);
+      border-radius: 10px;
+      padding: 6px;
     }
 
     .cell {
-      width: min(8vw, 48px);
-      height: min(8vw, 48px);
-      border-radius: 999px;
-      background: rgba(6, 14, 25, 0.88);
-      border: 2px solid rgba(255, 255, 255, 0.12);
-      box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.45);
-      transition: transform 140ms ease;
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: rgba(0, 8, 20, 0.85);
+      border: 2px solid rgba(255, 255, 255, 0.06);
+      transition: transform 0.15s;
     }
 
-    .cell.win {
-      box-shadow: 0 0 0 3px #fff6c6, 0 0 18px rgba(255, 245, 187, 0.82);
-      transform: scale(1.08);
+    .piece-0 { background: radial-gradient(circle at 35% 30%, #ff8a8a, #ef4444 60%); border-color: rgba(239, 68, 68, 0.3); }
+    .piece-1 { background: radial-gradient(circle at 35% 30%, #fff0a0, #facc15 60%); border-color: rgba(250, 204, 21, 0.3); }
+    .piece-2 { background: radial-gradient(circle at 35% 30%, #93c5fd, #3b82f6 60%); border-color: rgba(59, 130, 246, 0.3); }
+    .piece-3 { background: radial-gradient(circle at 35% 30%, #86efac, #22c55e 60%); border-color: rgba(34, 197, 94, 0.3); }
+
+    .cell.win-cell {
+      animation: pulse-win 0.6s ease-in-out infinite alternate;
     }
 
-    .piece-0 { background: radial-gradient(circle at 30% 25%, #ffadb0, #ef4444 65%); }
-    .piece-1 { background: radial-gradient(circle at 30% 25%, #fff2ab, #facc15 65%); }
-    .piece-2 { background: radial-gradient(circle at 30% 25%, #b8d5ff, #3b82f6 65%); }
-    .piece-3 { background: radial-gradient(circle at 30% 25%, #b6ffd3, #22c55e 65%); }
+    .cell.drop-anim {
+      animation: piece-drop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
 
+    @keyframes piece-drop {
+      from { transform: translateY(-200%); opacity: 0.5; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes pulse-win {
+      0% { transform: scale(1); filter: brightness(1); }
+      100% { transform: scale(1.12); filter: brightness(1.3); box-shadow: 0 0 12px rgba(255, 255, 255, 0.5); }
+    }
+
+    /* ── 3D Board ── */
     .board3d-controls {
       display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
+      gap: 10px;
       align-items: center;
       margin-bottom: 8px;
+      flex-wrap: wrap;
     }
+    .board3d-controls label { font-size: 0.82rem; color: var(--muted); }
 
     .board3d-shell {
       width: 100%;
-      height: min(64vw, 560px);
-      border-radius: 14px;
+      height: min(70vw, 480px);
+      border-radius: 12px;
       overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      background:
-        radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.08), transparent 36%),
-        linear-gradient(180deg, rgba(9, 24, 35, 0.82), rgba(4, 14, 22, 0.92));
+      border: 1px solid var(--border);
+      background: radial-gradient(ellipse at 50% 30%, rgba(20, 40, 70, 0.9), var(--bg) 70%);
       position: relative;
-      perspective: 980px;
+      perspective: 900px;
     }
 
-    .board3d-help {
+    .board3d-hint {
       position: absolute;
-      top: 8px;
-      left: 10px;
-      color: #bbe5f7;
-      font-size: 0.85rem;
-      background: rgba(2, 8, 12, 0.55);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 999px;
-      padding: 4px 10px;
-      z-index: 6;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: var(--muted);
+      font-size: 0.72rem;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 3px 10px;
+      border-radius: 99px;
+      z-index: 5;
+      pointer-events: none;
     }
 
     .board3d-scene {
@@ -369,11 +270,9 @@
       cursor: grab;
       display: grid;
       place-items: center;
+      touch-action: none;
     }
-
-    .board3d-scene.dragging {
-      cursor: grabbing;
-    }
+    .board3d-scene.dragging { cursor: grabbing; }
 
     .board3d {
       position: relative;
@@ -384,159 +283,188 @@
 
     .voxel {
       position: absolute;
-      width: 44px;
-      height: 44px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       transform-style: preserve-3d;
-      border: 2px solid rgba(255, 255, 255, 0.13);
-      background: rgba(9, 20, 32, 0.88);
-      box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.45);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      background: rgba(5, 12, 25, 0.85);
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.4);
+      transition: transform 0.15s;
     }
 
-    .voxel.win {
-      box-shadow: 0 0 0 2px #fff3c4, 0 0 20px rgba(255, 246, 186, 0.92);
+    .voxel.win-cell {
+      animation: pulse-win-3d 0.6s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse-win-3d {
+      0% { box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.4); }
+      100% { box-shadow: 0 0 14px 4px rgba(255, 255, 200, 0.7); }
     }
 
     .drop-node {
       position: absolute;
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.4);
-      background: rgba(255, 255, 255, 0.2);
-      color: #ecfbff;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.15);
+      color: #ddd;
       display: grid;
       place-items: center;
-      font-size: 0.72rem;
-      user-select: none;
+      font-size: 0.7rem;
+      font-weight: 600;
       cursor: pointer;
       z-index: 4;
+      user-select: none;
+      touch-action: manipulation;
+      transition: all 0.15s;
+    }
+    .drop-node:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+    .drop-node:disabled { opacity: 0.25; cursor: default; }
+    .drop-node.suggest-0 { background: rgba(239, 68, 68, 0.6); border-color: rgba(239, 68, 68, 0.8); }
+    .drop-node.suggest-1 { background: rgba(250, 204, 21, 0.6); border-color: rgba(250, 204, 21, 0.8); }
+    .drop-node.suggest-2 { background: rgba(59, 130, 246, 0.6); border-color: rgba(59, 130, 246, 0.8); }
+    .drop-node.suggest-3 { background: rgba(34, 197, 94, 0.6); border-color: rgba(34, 197, 94, 0.8); }
+
+    /* ── Win Overlay ── */
+    #winOverlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    #winOverlay.show { opacity: 1; }
+
+    .win-text {
+      font-size: clamp(2rem, 6vw, 4rem);
+      font-weight: 900;
+      text-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
+      animation: win-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     }
 
-    .drop-node:hover {
-      filter: brightness(1.1);
-      transform: translateZ(1px);
+    @keyframes win-pop {
+      from { transform: scale(0.3); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
     }
 
-    .drop-node:disabled {
-      cursor: not-allowed;
-      opacity: 0.45;
+    /* ── Confetti Canvas ── */
+    #confettiCanvas {
+      position: fixed;
+      inset: 0;
+      z-index: 99;
+      pointer-events: none;
     }
 
-    .drop-node.suggest-0 { background: rgba(239, 68, 68, 0.75); }
-    .drop-node.suggest-1 { background: rgba(250, 204, 21, 0.75); }
-    .drop-node.suggest-2 { background: rgba(59, 130, 246, 0.75); }
-    .drop-node.suggest-3 { background: rgba(34, 197, 94, 0.75); }
+    /* ── Screen shake ── */
+    @keyframes shake {
+      0%, 100% { transform: translate(0); }
+      20% { transform: translate(-3px, 2px); }
+      40% { transform: translate(3px, -2px); }
+      60% { transform: translate(-2px, 3px); }
+      80% { transform: translate(2px, -3px); }
+    }
+    .shake { animation: shake 0.4s ease; }
 
-    @media (max-width: 980px) {
-      .span-4,
-      .span-8 {
-        grid-column: span 12;
-      }
-
-      .top-bar {
-        grid-template-columns: 1fr;
-      }
-
-      .players,
-      .scoreboard {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .classic-controls,
-      .classic-grid {
-        gap: 4px;
-      }
-
-      .cell {
-        width: min(9vw, 42px);
-        height: min(9vw, 42px);
-      }
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .lobby-row { grid-template-columns: 1fr; }
+      .players-bar { gap: 4px; }
+      .player-badge { padding: 4px 8px; font-size: 0.8rem; }
     }
   </style>
 </head>
 <body>
+  <canvas id="confettiCanvas"></canvas>
+  <div id="winOverlay"><div class="win-text" id="winText"></div></div>
+
   <main class="app">
-    <header>
-      <h1 class="title">4-Player Connect 4 Arena</h1>
-      <p class="subtitle">Create private/public rooms, track wins in-session, and switch between Classic and 3D modes.</p>
-    </header>
+    <!-- LOBBY -->
+    <section id="lobbyView">
+      <div class="lobby-header">
+        <h1>Connect 4</h1>
+        <p>4-Player Arena &middot; Classic &amp; 3D</p>
+      </div>
 
-    <section id="lobbyView" class="panel-grid">
-      <article class="panel span-4">
-        <h2>Create Room</h2>
-        <div class="form-row">
-          <label for="createName">Room Name</label>
-          <input id="createName" type="text" maxlength="30" placeholder="Friday Game Night" />
+      <div class="lobby-row">
+        <div class="card">
+          <h3>Create Room</h3>
+          <div class="form-group">
+            <label>Room Name</label>
+            <input id="createName" maxlength="30" placeholder="My Room" />
+          </div>
+          <div class="form-group">
+            <label>Mode</label>
+            <select id="createMode">
+              <option value="classic">Classic 2D</option>
+              <option value="3d">3D (4&times;4&times;4)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Visibility</label>
+            <select id="createVisibility">
+              <option value="public">Public</option>
+              <option value="private">Private</option>
+            </select>
+          </div>
+          <button id="createRoomBtn">Create</button>
+          <div id="createError" class="error-msg"></div>
         </div>
-        <div class="form-row">
-          <label for="createMode">Game Mode</label>
-          <select id="createMode">
-            <option value="classic">Classic 2D</option>
-            <option value="3d">3D Connect 4</option>
-          </select>
-        </div>
-        <div class="form-row">
-          <label for="createVisibility">Room Visibility</label>
-          <select id="createVisibility">
-            <option value="public">Public room</option>
-            <option value="private">Private room (code only)</option>
-          </select>
-        </div>
-        <button id="createRoomBtn">Create Room</button>
-        <div id="createError" class="error"></div>
-      </article>
 
-      <article class="panel span-4">
-        <h2>Join Private Room</h2>
-        <div class="form-row">
-          <label for="joinCode">Room Code</label>
-          <input id="joinCode" type="text" maxlength="10" placeholder="ABC123" />
+        <div class="card">
+          <h3>Join by Code</h3>
+          <div class="form-group">
+            <label>Room Code</label>
+            <input id="joinCode" maxlength="10" placeholder="ABC123" />
+          </div>
+          <button id="joinCodeBtn" class="btn-secondary">Join</button>
+          <div id="joinCodeError" class="error-msg"></div>
         </div>
-        <button id="joinCodeBtn" class="btn-secondary">Join By Code</button>
-        <div id="joinCodeError" class="error"></div>
-      </article>
+      </div>
 
-      <article class="panel span-4">
-        <h2>Public Rooms</h2>
+      <div class="card" style="margin-top:12px;">
+        <h3>Public Rooms</h3>
         <div id="publicRooms" class="room-list"></div>
-      </article>
+      </div>
     </section>
 
+    <!-- ROOM -->
     <section id="roomView" class="hidden">
-      <article class="panel top-bar">
-        <div>
-          <div class="room-header">
-            <h2 id="roomTitle" style="margin:0;">Room</h2>
-            <span id="modeChip" class="chip">Mode</span>
-            <span id="visibilityChip" class="chip">Visibility</span>
-            <span id="codeChip" class="chip hidden"></span>
-            <span id="hostChip" class="chip hidden">You are host</span>
+      <div class="card">
+        <div class="room-top">
+          <div class="room-info">
+            <h2 id="roomTitle">Room</h2>
+            <div class="room-chips">
+              <span id="modeChip" class="chip"></span>
+              <span id="visibilityChip" class="chip"></span>
+              <span id="codeChip" class="chip hidden"></span>
+              <span id="hostChip" class="chip hidden">Host</span>
+            </div>
+            <div id="statusLine" class="status-line"></div>
           </div>
-          <div id="statusLine" class="status"></div>
+          <div class="room-btns">
+            <button id="startBtn" class="btn-sm hidden">Start</button>
+            <button id="restartBtn" class="btn-sm btn-secondary hidden">Restart</button>
+            <button id="rematchBtn" class="btn-sm hidden">Rematch</button>
+            <button id="leaveBtn" class="btn-sm btn-danger">Leave</button>
+          </div>
         </div>
-        <div class="controls">
-          <button id="startBtn" class="btn-secondary hidden">Start Game</button>
-          <button id="restartBtn" class="btn-secondary hidden">Restart Round</button>
-          <button id="rematchBtn" class="btn-secondary hidden">Rematch</button>
-          <button id="leaveBtn" class="btn-danger">Leave Room</button>
-        </div>
-      </article>
+      </div>
 
-      <article class="panel">
-        <h3>Players</h3>
-        <div id="playersList" class="players"></div>
-      </article>
+      <div id="playersBar" class="players-bar"></div>
 
-      <article class="panel">
-        <h3>Session Wins</h3>
-        <div id="scoreboard" class="scoreboard"></div>
-      </article>
-
-      <article class="panel board-wrap">
+      <div class="card" id="boardCard">
         <div id="classicArea"></div>
         <div id="mode3dArea" class="hidden"></div>
-      </article>
+      </div>
     </section>
   </main>
 
@@ -544,167 +472,130 @@
   <script>
     const socket = io();
 
+    /* ── DOM refs ── */
     const lobbyView = document.getElementById("lobbyView");
     const roomView = document.getElementById("roomView");
-
     const createName = document.getElementById("createName");
     const createMode = document.getElementById("createMode");
     const createVisibility = document.getElementById("createVisibility");
     const createRoomBtn = document.getElementById("createRoomBtn");
     const createError = document.getElementById("createError");
-
     const joinCode = document.getElementById("joinCode");
     const joinCodeBtn = document.getElementById("joinCodeBtn");
     const joinCodeError = document.getElementById("joinCodeError");
-
     const publicRoomsEl = document.getElementById("publicRooms");
-
     const roomTitle = document.getElementById("roomTitle");
     const modeChip = document.getElementById("modeChip");
     const visibilityChip = document.getElementById("visibilityChip");
     const codeChip = document.getElementById("codeChip");
     const hostChip = document.getElementById("hostChip");
     const statusLine = document.getElementById("statusLine");
-
     const startBtn = document.getElementById("startBtn");
     const restartBtn = document.getElementById("restartBtn");
     const rematchBtn = document.getElementById("rematchBtn");
     const leaveBtn = document.getElementById("leaveBtn");
-
-    const playersList = document.getElementById("playersList");
-    const scoreboard = document.getElementById("scoreboard");
-
+    const playersBar = document.getElementById("playersBar");
     const classicArea = document.getElementById("classicArea");
     const mode3dArea = document.getElementById("mode3dArea");
+    const boardCard = document.getElementById("boardCard");
+    const confettiCanvas = document.getElementById("confettiCanvas");
+    const winOverlay = document.getElementById("winOverlay");
+    const winText = document.getElementById("winText");
 
+    /* ── Constants ── */
     const CLASSIC_ROWS = 7;
     const CLASSIC_COLS = 9;
     const D3_SIZE = 4;
 
+    /* ── State ── */
     let publicRooms = [];
     let roomState = null;
     let mySlotIndex = null;
+    let prevBoard = null;
+    let prevPhase = null;
 
-    const camera = {
-      rotX: -27,
-      rotY: 34,
-      panX: 0,
-      panY: 0,
-      layerSpacing: 78,
-      drag: null,
-    };
+    const camera = { rotX: -27, rotY: 34, panX: 0, panY: 0, layerSpacing: 78, drag: null };
 
-    function showLobby() {
-      lobbyView.classList.remove("hidden");
-      roomView.classList.add("hidden");
+    /* ── Helpers ── */
+    function showLobby() { lobbyView.classList.remove("hidden"); roomView.classList.add("hidden"); }
+    function showRoom() { lobbyView.classList.add("hidden"); roomView.classList.remove("hidden"); }
+    function clearErrors() { createError.textContent = ""; joinCodeError.textContent = ""; }
+
+    function activeSlots(s) {
+      return s.slots.map((sl, i) => ({ sl, i })).filter(x => x.sl.occupied).map(x => x.i);
+    }
+    function isHost() { return roomState && mySlotIndex === roomState.hostSlot; }
+    function canPlayTurn() { return roomState && roomState.phase === "playing" && mySlotIndex === roomState.currentSlot; }
+    function playerName(i) { return roomState?.slots[i]?.name || "P" + (i + 1); }
+    function playerColor(i) { return roomState?.slots[i]?.color || "#fff"; }
+
+    function escapeHtml(t) {
+      return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     }
 
-    function showRoom() {
-      lobbyView.classList.add("hidden");
-      roomView.classList.remove("hidden");
+    function winSet2D(s) {
+      if (!s.winResult || !Array.isArray(s.winResult.cells)) return new Set();
+      return new Set(s.winResult.cells.map(([r, c]) => r + "," + c));
     }
 
-    function clearErrors() {
-      createError.textContent = "";
-      joinCodeError.textContent = "";
+    function winSet3D(s) {
+      if (!s.winResult || !Array.isArray(s.winResult.cells)) return new Set();
+      return new Set(s.winResult.cells.map(([y, x, z]) => y + "," + x + "," + z));
     }
 
-    function activeSlots(state) {
-      return state.slots
-        .map((slot, index) => ({ slot, index }))
-        .filter(item => item.slot.occupied)
-        .map(item => item.index);
-    }
-
-    function isHost() {
-      return roomState && mySlotIndex === roomState.hostSlot;
-    }
-
-    function canPlayTurn() {
-      return roomState && roomState.phase === "playing" && mySlotIndex === roomState.currentSlot;
-    }
-
-    function playerNameFor(index) {
-      return roomState && roomState.slots[index] ? roomState.slots[index].name : `P${index + 1}`;
-    }
-
-    function playerColorFor(index) {
-      return roomState && roomState.slots[index] ? roomState.slots[index].color : "#ffffff";
-    }
-
-    function winningClassicSet(state) {
-      if (!state.winResult || !Array.isArray(state.winResult.cells)) return new Set();
-      const set = new Set();
-      for (const [r, c] of state.winResult.cells) {
-        set.add(`${r},${c}`);
-      }
-      return set;
-    }
-
-    function winning3DSet(state) {
-      if (!state.winResult || !Array.isArray(state.winResult.cells)) return new Set();
-      const set = new Set();
-      for (const [y, x, z] of state.winResult.cells) {
-        set.add(`${y},${x},${z}`);
-      }
-      return set;
-    }
-
+    /* ── Render Public Rooms ── */
     function renderPublicRooms() {
       publicRoomsEl.innerHTML = "";
-
       if (publicRooms.length === 0) {
-        const empty = document.createElement("div");
-        empty.className = "meta";
-        empty.textContent = "No public rooms yet.";
-        publicRoomsEl.appendChild(empty);
+        publicRoomsEl.innerHTML = '<div class="empty-msg">No public rooms yet.</div>';
         return;
       }
-
       for (const room of publicRooms) {
         const item = document.createElement("div");
         item.className = "room-item";
-
-        const left = document.createElement("div");
-        left.innerHTML = `
-          <strong>${escapeHtml(room.name)}</strong>
-          <div class="meta">
-            ${room.gameMode === "3d" ? "3D" : "Classic"} • ${room.playerCount}/${room.maxPlayers} players • ${room.phase}
-          </div>
-        `;
-
-        const joinBtn = document.createElement("button");
-        joinBtn.className = "btn-secondary";
-        joinBtn.textContent = "Join";
-        joinBtn.disabled = room.phase !== "lobby" || !!roomState;
-        joinBtn.onclick = () => {
+        item.innerHTML =
+          '<div><div class="room-item-info">' + escapeHtml(room.name) + '</div>' +
+          '<div class="room-item-meta">' + (room.gameMode === "3d" ? "3D" : "Classic") +
+          " \u00B7 " + room.playerCount + "/" + room.maxPlayers + " \u00B7 " + room.phase + '</div></div>';
+        const btn = document.createElement("button");
+        btn.className = "btn-sm btn-secondary";
+        btn.textContent = "Join";
+        btn.disabled = room.phase !== "lobby" || !!roomState;
+        btn.onclick = () => {
           clearErrors();
-          socket.emit("joinRoom", { roomId: room.id }, (resp = {}) => {
-            if (resp.error) {
-              joinCodeError.textContent = resp.error;
-              return;
-            }
-            mySlotIndex = resp.slotIndex;
+          socket.emit("joinRoom", { roomId: room.id }, (r) => {
+            r = r || {};
+            if (r.error) { joinCodeError.textContent = r.error; return; }
+            mySlotIndex = r.slotIndex;
           });
         };
-
-        item.appendChild(left);
-        item.appendChild(joinBtn);
+        item.appendChild(btn);
         publicRoomsEl.appendChild(item);
       }
     }
 
+    /* ── Render Room ── */
     function renderRoom() {
-      if (!roomState) {
-        showLobby();
-        return;
-      }
-
+      if (!roomState) { showLobby(); return; }
       showRoom();
-      renderRoomHeader();
-      renderPlayers();
-      renderScoreboard();
-      renderControls();
+
+      roomTitle.textContent = roomState.name;
+      modeChip.textContent = roomState.gameMode === "3d" ? "3D" : "Classic";
+      visibilityChip.textContent = roomState.isPublic ? "Public" : "Private";
+      if (roomState.code) { codeChip.textContent = "Code: " + roomState.code; codeChip.classList.remove("hidden"); }
+      else { codeChip.classList.add("hidden"); }
+      hostChip.classList.toggle("hidden", !isHost());
+
+      statusLine.textContent = buildStatus();
+
+      const host = isHost();
+      const active = activeSlots(roomState);
+      startBtn.classList.toggle("hidden", !(roomState.phase === "lobby" && active.length >= 2 && host));
+      restartBtn.classList.toggle("hidden", !(host && (roomState.phase === "playing" || roomState.phase === "ended")));
+      rematchBtn.classList.toggle("hidden", !(host && roomState.phase === "ended"));
+
+      renderPlayersBar();
 
       if (roomState.gameMode === "classic") {
         mode3dArea.classList.add("hidden");
@@ -715,109 +606,85 @@
         mode3dArea.classList.remove("hidden");
         render3DBoard();
       }
-    }
 
-    function renderRoomHeader() {
-      roomTitle.textContent = `${roomState.name} (#${roomState.id})`;
-      modeChip.textContent = roomState.gameMode === "3d" ? "3D Connect 4" : "Classic Connect 4";
-      visibilityChip.textContent = roomState.isPublic ? "Public room" : "Private room";
-
-      if (roomState.code) {
-        codeChip.textContent = `Code: ${roomState.code}`;
-        codeChip.classList.remove("hidden");
-      } else {
-        codeChip.classList.add("hidden");
+      if (roomState.phase === "ended" && roomState.winResult && prevPhase !== "ended") {
+        celebrate(roomState.winResult.slotIndex);
       }
-
-      hostChip.classList.toggle("hidden", !isHost());
-      statusLine.textContent = buildStatusMessage();
+      prevPhase = roomState.phase;
     }
 
-    function buildStatusMessage() {
+    function buildStatus() {
       if (!roomState) return "";
-
       if (roomState.phase === "lobby") {
-        const players = activeSlots(roomState).length;
-        if (isHost()) {
-          if (players < 2) return "You are host. Need at least 2 players to start.";
-          return "You are host. Start when everyone is ready.";
-        }
-        return "Waiting for host to start the game.";
+        const n = activeSlots(roomState).length;
+        if (isHost()) return n < 2 ? "Waiting for players\u2026" : "Ready! Press Start.";
+        return "Waiting for host\u2026";
       }
-
       if (roomState.phase === "playing") {
-        const current = roomState.currentSlot;
-        if (current === mySlotIndex) return "Your turn. Drop a disc.";
-        return `${playerNameFor(current)}'s turn.`;
+        const c = roomState.currentSlot;
+        return c === mySlotIndex ? "\uD83C\uDFAF Your turn!" : playerName(c) + "'s turn";
       }
-
       if (roomState.phase === "ended") {
-        if (roomState.winResult && typeof roomState.winResult.slotIndex === "number") {
-          return `${playerNameFor(roomState.winResult.slotIndex)} wins this round.`;
-        }
-        return "Round ended. Host can rematch or restart.";
+        if (roomState.winResult) return "\uD83C\uDFC6 " + playerName(roomState.winResult.slotIndex) + " wins!";
+        return "Draw! No one wins.";
       }
-
       return "";
     }
 
-    function renderPlayers() {
-      playersList.innerHTML = "";
-      roomState.slots.forEach((slot, index) => {
-        const card = document.createElement("div");
-        card.className = "slot-card" + (index === mySlotIndex ? " me" : "");
-        card.innerHTML = `
-          <div class="slot-name" style="color:${slot.color};">${slot.name}${index === mySlotIndex ? " (You)" : ""}</div>
-          <div class="slot-muted">${slot.occupied ? "Connected" : "Open slot"}</div>
-        `;
-        playersList.appendChild(card);
+    function renderPlayersBar() {
+      playersBar.innerHTML = "";
+      roomState.slots.forEach((slot, i) => {
+        const badge = document.createElement("div");
+        badge.className = "player-badge";
+        if (i === mySlotIndex) badge.classList.add("me");
+        if (roomState.phase === "playing" && i === roomState.currentSlot) badge.classList.add("active-turn");
+        badge.innerHTML =
+          '<span class="player-dot" style="background:' + slot.color + '"></span>' +
+          '<span>' + slot.name + (i === mySlotIndex ? " (You)" : "") + '</span>' +
+          '<span class="player-wins">' + (slot.occupied ? "W:" + (roomState.wins[i] || 0) : "Empty") + '</span>';
+        playersBar.appendChild(badge);
       });
     }
 
-    function renderScoreboard() {
-      scoreboard.innerHTML = "";
-      roomState.slots.forEach((slot, index) => {
-        const card = document.createElement("div");
-        card.className = "slot-card" + (index === mySlotIndex ? " me" : "");
-        card.innerHTML = `
-          <div class="slot-name" style="color:${slot.color};">${slot.name}</div>
-          <div class="slot-muted">Wins: ${roomState.wins[index] || 0}</div>
-        `;
-        scoreboard.appendChild(card);
-      });
-    }
-
-    function renderControls() {
-      const host = isHost();
-      const canStart = roomState.phase === "lobby" && activeSlots(roomState).length >= 2 && host;
-      const canRestart = host && (roomState.phase === "playing" || roomState.phase === "ended");
-      const canRematch = host && roomState.phase === "ended";
-
-      startBtn.classList.toggle("hidden", !canStart);
-      restartBtn.classList.toggle("hidden", !canRestart);
-      rematchBtn.classList.toggle("hidden", !canRematch);
-    }
-
+    /* ── Classic Board ── */
     function renderClassicBoard() {
       if (!roomState.board) {
-        classicArea.innerHTML = "<p class='meta'>Board will appear when the host starts the game.</p>";
+        classicArea.innerHTML = '<p class="empty-msg">Waiting for host to start\u2026</p>';
+        prevBoard = null;
         return;
       }
 
       const canDrop = canPlayTurn();
-      const wins = winningClassicSet(roomState);
+      const wins = winSet2D(roomState);
 
-      const wrapper = document.createElement("div");
+      let newCell = null;
+      if (prevBoard && roomState.gameMode === "classic") {
+        for (let r = 0; r < CLASSIC_ROWS; r++) {
+          for (let c = 0; c < CLASSIC_COLS; c++) {
+            if (prevBoard[r] && prevBoard[r][c] === null && roomState.board[r][c] !== null) {
+              newCell = r + "," + c;
+            }
+          }
+        }
+      }
+      prevBoard = roomState.board.map(row => row.slice());
 
-      const controls = document.createElement("div");
-      controls.className = "classic-controls";
+      const wrap = document.createElement("div");
+      wrap.className = "board-container";
+
+      const board = document.createElement("div");
+      board.className = "classic-board";
+
+      const dropRow = document.createElement("div");
+      dropRow.className = "classic-drop-row";
       for (let c = 0; c < CLASSIC_COLS; c++) {
         const btn = document.createElement("button");
         btn.className = "drop-btn";
-        btn.textContent = "Drop";
+        btn.textContent = "\u25BC";
         btn.disabled = !canDrop;
-        btn.onclick = () => socket.emit("dropDisc", { col: c });
-        controls.appendChild(btn);
+        const col = c;
+        btn.onclick = () => socket.emit("dropDisc", { col });
+        dropRow.appendChild(btn);
       }
 
       const grid = document.createElement("div");
@@ -825,170 +692,151 @@
       for (let r = 0; r < CLASSIC_ROWS; r++) {
         for (let c = 0; c < CLASSIC_COLS; c++) {
           const cell = document.createElement("div");
-          const v = roomState.board[r][c];
           cell.className = "cell";
-          if (typeof v === "number") {
-            cell.classList.add(`piece-${v}`);
-          }
-          if (wins.has(`${r},${c}`)) {
-            cell.classList.add("win");
-          }
+          const v = roomState.board[r][c];
+          if (typeof v === "number") cell.classList.add("piece-" + v);
+          if (wins.has(r + "," + c)) cell.classList.add("win-cell");
+          if (newCell === r + "," + c) cell.classList.add("drop-anim");
           grid.appendChild(cell);
         }
       }
 
-      wrapper.appendChild(controls);
-      wrapper.appendChild(grid);
+      board.appendChild(dropRow);
+      board.appendChild(grid);
+      wrap.appendChild(board);
       classicArea.innerHTML = "";
-      classicArea.appendChild(wrapper);
+      classicArea.appendChild(wrap);
     }
 
-    function buildDropAvailability() {
-      const open = [];
-      for (let x = 0; x < D3_SIZE; x++) {
-        for (let z = 0; z < D3_SIZE; z++) {
-          open.push({ x, z, open: roomState.board[D3_SIZE - 1][x][z] === null });
-        }
-      }
-      return open;
-    }
-
+    /* ── 3D Board ── */
     function render3DBoard() {
       if (!roomState.board) {
-        mode3dArea.innerHTML = "<p class='meta'>Board will appear when the host starts the game.</p>";
+        mode3dArea.innerHTML = '<p class="empty-msg">Waiting for host to start\u2026</p>';
         return;
       }
 
       const canDrop = canPlayTurn();
-      const wins = winning3DSet(roomState);
+      const wins = winSet3D(roomState);
 
-      mode3dArea.innerHTML = `
-        <div class="board3d-controls">
-          <label for="layerSpacing">Layer spacing</label>
-          <input id="layerSpacing" type="range" min="42" max="130" step="1" value="${camera.layerSpacing}" style="max-width:240px;" />
-          <button id="resetCamera" class="btn-ghost" style="width:auto;padding:8px 12px;">Reset camera</button>
-        </div>
-        <div class="board3d-shell" id="board3dShell">
-          <div class="board3d-help">Drag to pan around • Hold Shift+Drag to move scene • Use slider to shrink/expand layers</div>
-          <div class="board3d-scene" id="board3dScene">
-            <div class="board3d" id="board3d"></div>
-          </div>
-        </div>
-      `;
+      mode3dArea.innerHTML =
+        '<div class="board3d-controls">' +
+        '<label>Spacing</label>' +
+        '<input id="layerSpacing" type="range" min="42" max="130" value="' + camera.layerSpacing + '" style="width:160px">' +
+        '<button id="resetCam" class="btn-sm btn-secondary" type="button">Reset View</button>' +
+        '</div>' +
+        '<div class="board3d-shell" id="board3dShell">' +
+        '<div class="board3d-hint">Drag to rotate \u00B7 Shift+drag to pan</div>' +
+        '<div class="board3d-scene" id="board3dScene">' +
+        '<div class="board3d" id="board3d"></div>' +
+        '</div></div>';
 
       const scene = document.getElementById("board3dScene");
       const board = document.getElementById("board3d");
       const spacingInput = document.getElementById("layerSpacing");
-      const resetCameraBtn = document.getElementById("resetCamera");
+      const resetBtn = document.getElementById("resetCam");
 
       applyCamera(scene);
       wireScenePan(scene);
 
       spacingInput.oninput = () => {
         camera.layerSpacing = Number(spacingInput.value);
-        draw3DCells(board, wins, canDrop);
+        draw3D(board, wins, canDrop);
       };
-
-      resetCameraBtn.onclick = () => {
-        camera.rotX = -27;
-        camera.rotY = 34;
-        camera.panX = 0;
-        camera.panY = 0;
+      resetBtn.onclick = () => {
+        camera.rotX = -27; camera.rotY = 34;
+        camera.panX = 0; camera.panY = 0;
         applyCamera(scene);
       };
 
-      draw3DCells(board, wins, canDrop);
+      draw3D(board, wins, canDrop);
     }
 
-    function draw3DCells(board, wins, canDrop) {
-      board.innerHTML = "";
-
-      const step = 64;
+    function draw3D(boardEl, wins, canDrop) {
+      boardEl.innerHTML = "";
+      const step = 68;
       const center = (D3_SIZE - 1) / 2;
-      const layerStep = camera.layerSpacing;
+      const lStep = camera.layerSpacing;
 
       for (let y = 0; y < D3_SIZE; y++) {
         for (let x = 0; x < D3_SIZE; x++) {
           for (let z = 0; z < D3_SIZE; z++) {
             const tx = (x - center) * step;
             const tz = (z - center) * step;
-            const ty = (y - center) * layerStep;
+            const ty = (y - center) * lStep;
 
             const voxel = document.createElement("div");
             voxel.className = "voxel";
-            voxel.style.transform = `translate3d(${tx}px, ${-ty}px, ${tz}px)`;
+            voxel.style.transform = "translate3d(" + tx + "px," + (-ty) + "px," + tz + "px)";
 
-            const value = roomState.board[y][x][z];
-            if (typeof value === "number") {
-              voxel.classList.add(`piece-${value}`);
-            }
-            if (wins.has(`${y},${x},${z}`)) {
-              voxel.classList.add("win");
-            }
+            const v = roomState.board[y][x][z];
+            if (typeof v === "number") voxel.classList.add("piece-" + v);
+            if (wins.has(y + "," + x + "," + z)) voxel.classList.add("win-cell");
 
-            board.appendChild(voxel);
+            boardEl.appendChild(voxel);
           }
         }
       }
 
-      const topY = (D3_SIZE / 2) * layerStep + 54;
-      const availability = buildDropAvailability();
-      for (const col of availability) {
-        const tx = (col.x - center) * step;
-        const tz = (col.z - center) * step;
+      const topY = (D3_SIZE / 2) * lStep + 58;
+      for (let x = 0; x < D3_SIZE; x++) {
+        for (let z = 0; z < D3_SIZE; z++) {
+          const open = roomState.board[D3_SIZE - 1][x][z] === null;
+          const tx = (x - center) * step;
+          const tz = (z - center) * step;
 
-        const node = document.createElement("button");
-        node.type = "button";
-        node.className = "drop-node";
-        if (canDrop && col.open) {
-          node.classList.add(`suggest-${mySlotIndex}`);
+          const node = document.createElement("button");
+          node.type = "button";
+          node.className = "drop-node";
+          if (canDrop && open) node.classList.add("suggest-" + mySlotIndex);
+          node.style.transform = "translate3d(" + tx + "px," + (-topY) + "px," + tz + "px)";
+          node.textContent = x + "," + z;
+          node.disabled = !canDrop || !open;
+
+          const cx = x, cz = z;
+          node.onclick = (e) => {
+            e.stopPropagation();
+            socket.emit("dropDisc3D", { x: cx, z: cz });
+          };
+
+          boardEl.appendChild(node);
         }
-        node.style.transform = `translate3d(${tx}px, ${-topY}px, ${tz}px)`;
-        node.textContent = `${col.x},${col.z}`;
-        node.disabled = !canDrop || !col.open;
-        node.onclick = () => socket.emit("dropDisc3D", { x: col.x, z: col.z });
-        board.appendChild(node);
       }
     }
 
+    /* ── 3D Camera ── */
     function wireScenePan(scene) {
-      scene.oncontextmenu = (evt) => evt.preventDefault();
+      scene.oncontextmenu = (e) => e.preventDefault();
 
-      scene.onpointerdown = (evt) => {
-        camera.drag = {
-          x: evt.clientX,
-          y: evt.clientY,
-          shift: evt.shiftKey,
-          pointerId: evt.pointerId,
-        };
-        scene.setPointerCapture(evt.pointerId);
+      scene.onpointerdown = (e) => {
+        // Don't capture pointer when clicking drop buttons — let the click fire normally
+        if (e.target.closest(".drop-node")) return;
+
+        camera.drag = { x: e.clientX, y: e.clientY, shift: e.shiftKey, id: e.pointerId };
+        scene.setPointerCapture(e.pointerId);
         scene.classList.add("dragging");
       };
 
-      scene.onpointermove = (evt) => {
-        if (!camera.drag || evt.pointerId !== camera.drag.pointerId) return;
-
-        const dx = evt.clientX - camera.drag.x;
-        const dy = evt.clientY - camera.drag.y;
+      scene.onpointermove = (e) => {
+        if (!camera.drag || e.pointerId !== camera.drag.id) return;
+        const dx = e.clientX - camera.drag.x;
+        const dy = e.clientY - camera.drag.y;
 
         if (camera.drag.shift) {
           camera.panX += dx;
           camera.panY += dy;
         } else {
-          camera.rotY += dx * 0.42;
-          camera.rotX += dy * 0.36;
-          if (camera.rotX < -85) camera.rotX = -85;
-          if (camera.rotX > 85) camera.rotX = 85;
+          camera.rotY += dx * 0.4;
+          camera.rotX = Math.max(-85, Math.min(85, camera.rotX + dy * 0.35));
         }
 
-        camera.drag.x = evt.clientX;
-        camera.drag.y = evt.clientY;
+        camera.drag.x = e.clientX;
+        camera.drag.y = e.clientY;
         applyCamera(scene);
       };
 
-      scene.onpointerup = (evt) => {
-        if (camera.drag && evt.pointerId === camera.drag.pointerId) {
-          scene.releasePointerCapture(evt.pointerId);
+      scene.onpointerup = (e) => {
+        if (camera.drag && camera.drag.id === e.pointerId) {
+          scene.releasePointerCapture(e.pointerId);
           camera.drag = null;
           scene.classList.remove("dragging");
         }
@@ -1001,34 +849,118 @@
     }
 
     function applyCamera(scene) {
-      scene.style.transform = `translate(${camera.panX}px, ${camera.panY}px) rotateX(${camera.rotX}deg) rotateY(${camera.rotY}deg)`;
+      scene.style.transform =
+        "translate(" + camera.panX + "px," + camera.panY + "px) " +
+        "rotateX(" + camera.rotX + "deg) rotateY(" + camera.rotY + "deg)";
     }
 
-    function escapeHtml(text) {
-      return String(text)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#39;");
+    /* ── Confetti ── */
+    const ctx = confettiCanvas.getContext("2d");
+    let particles = [];
+    let confettiAnim = null;
+
+    function resizeCanvas() {
+      confettiCanvas.width = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    function celebrate(slotIndex) {
+      const color = playerColor(slotIndex);
+
+      // Win overlay
+      winText.textContent = playerName(slotIndex) + " wins!";
+      winText.style.color = color;
+      winOverlay.classList.add("show");
+      setTimeout(() => winOverlay.classList.remove("show"), 2500);
+
+      // Screen shake
+      boardCard.classList.add("shake");
+      setTimeout(() => boardCard.classList.remove("shake"), 400);
+
+      // Confetti
+      spawnConfetti(color);
     }
 
+    function spawnConfetti(mainColor) {
+      const colors = [mainColor, "#fff", "#fbbf24", "#ec4899", "#8b5cf6", "#06b6d4"];
+      particles = [];
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+
+      for (let i = 0; i < 150; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 3 + Math.random() * 8;
+        particles.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(angle) * speed * (0.5 + Math.random()),
+          vy: Math.sin(angle) * speed * (0.5 + Math.random()) - 4,
+          size: 4 + Math.random() * 6,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: Math.random() * 360,
+          rotSpeed: (Math.random() - 0.5) * 12,
+          life: 1,
+          decay: 0.008 + Math.random() * 0.008,
+          isRect: Math.random() > 0.5,
+        });
+      }
+
+      if (confettiAnim) cancelAnimationFrame(confettiAnim);
+      animateConfetti();
+    }
+
+    function animateConfetti() {
+      ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+      let alive = false;
+
+      for (const p of particles) {
+        if (p.life <= 0) continue;
+        alive = true;
+
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.15;
+        p.vx *= 0.99;
+        p.rotation += p.rotSpeed;
+        p.life -= p.decay;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation * Math.PI / 180);
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.fillStyle = p.color;
+        if (p.isRect) {
+          ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      if (alive) {
+        confettiAnim = requestAnimationFrame(animateConfetti);
+      } else {
+        ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        confettiAnim = null;
+      }
+    }
+
+    /* ── Event Handlers ── */
     createRoomBtn.onclick = () => {
       if (roomState) return;
       clearErrors();
-
-      const payload = {
+      socket.emit("createRoom", {
         name: createName.value.trim(),
         isPublic: createVisibility.value === "public",
         gameMode: createMode.value === "3d" ? "3d" : "classic",
-      };
-
-      socket.emit("createRoom", payload, (resp = {}) => {
-        if (resp.error) {
-          createError.textContent = resp.error;
-          return;
-        }
-        mySlotIndex = resp.slotIndex;
+      }, (r) => {
+        r = r || {};
+        if (r.error) { createError.textContent = r.error; return; }
+        mySlotIndex = r.slotIndex;
       });
     };
 
@@ -1036,17 +968,11 @@
       if (roomState) return;
       clearErrors();
       const code = joinCode.value.trim().toUpperCase();
-      if (!code) {
-        joinCodeError.textContent = "Enter a room code.";
-        return;
-      }
-
-      socket.emit("joinByCode", { code }, (resp = {}) => {
-        if (resp.error) {
-          joinCodeError.textContent = resp.error;
-          return;
-        }
-        mySlotIndex = resp.slotIndex;
+      if (!code) { joinCodeError.textContent = "Enter a code."; return; }
+      socket.emit("joinByCode", { code }, (r) => {
+        r = r || {};
+        if (r.error) { joinCodeError.textContent = r.error; return; }
+        mySlotIndex = r.slotIndex;
       });
     };
 
@@ -1058,32 +984,28 @@
       socket.emit("leaveRoom");
       roomState = null;
       mySlotIndex = null;
+      prevBoard = null;
+      prevPhase = null;
       showLobby();
       renderPublicRooms();
     };
 
-    socket.on("roomState", (state) => {
-      roomState = state;
-      renderRoom();
-    });
-
-    socket.on("publicRooms", (rooms) => {
-      publicRooms = Array.isArray(rooms) ? rooms : [];
-      renderPublicRooms();
-    });
+    /* ── Socket Events ── */
+    socket.on("roomState", (s) => { roomState = s; renderRoom(); });
+    socket.on("publicRooms", (r) => { publicRooms = Array.isArray(r) ? r : []; renderPublicRooms(); });
 
     socket.on("connect", () => {
-      socket.emit("listRooms", {}, (rooms) => {
-        publicRooms = Array.isArray(rooms) ? rooms : [];
+      socket.emit("listRooms", {}, (r) => {
+        publicRooms = Array.isArray(r) ? r : [];
         renderPublicRooms();
       });
     });
 
     socket.on("disconnect", () => {
-      if (!roomState) return;
-      statusLine.textContent = "Connection lost. Reconnecting...";
+      if (roomState) statusLine.textContent = "Reconnecting\u2026";
     });
 
+    /* ── Init ── */
     showLobby();
     renderPublicRooms();
   </script>
