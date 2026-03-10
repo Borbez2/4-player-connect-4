@@ -3,453 +3,1089 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Connect 4 - Local Multiplayer</title>
-  <script src="/socket.io/socket.io.js"></script>
+  <title>4-Player Connect 4</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-1: #102d42;
+      --bg-2: #194f64;
+      --panel: rgba(11, 27, 41, 0.78);
+      --panel-border: rgba(255, 255, 255, 0.14);
+      --text: #e7f7ff;
+      --muted: #95b8c9;
+      --accent: #ffb703;
+      --danger: #ef476f;
+      --ok: #06d6a0;
+      --shadow: 0 18px 50px rgba(2, 12, 19, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
 
     body {
-      background: #0f172a;
-      color: #e2e8f0;
-      font-family: system-ui, sans-serif;
+      margin: 0;
       min-height: 100vh;
+      color: var(--text);
+      font-family: "Avenir Next", "Trebuchet MS", "Gill Sans", sans-serif;
+      background:
+        radial-gradient(circle at 12% 10%, rgba(255, 183, 3, 0.3), transparent 40%),
+        radial-gradient(circle at 88% 16%, rgba(6, 214, 160, 0.2), transparent 34%),
+        radial-gradient(circle at 40% 85%, rgba(17, 138, 178, 0.22), transparent 40%),
+        linear-gradient(135deg, var(--bg-1), var(--bg-2));
       display: flex;
-      align-items: center;
       justify-content: center;
+      padding: 20px;
     }
 
-    #app {
+    .app {
+      width: min(1180px, 100%);
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 1.5rem;
-      padding: 1.5rem;
-      width: 100%;
+      gap: 16px;
     }
 
-    h1 {
-      font-size: 2.25rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
+    .title {
+      margin: 0;
+      font-family: "Rockwell", "Georgia", serif;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      letter-spacing: 0.03em;
+      text-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
     }
 
-    /* lobby */
-    #lobby {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1.25rem;
-      width: 100%;
-      max-width: 380px;
+    .subtitle {
+      margin-top: 6px;
+      margin-bottom: 0;
+      color: var(--muted);
     }
 
-    .slot-list {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .slot-row {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      background: #1e293b;
-      border-radius: 0.75rem;
-      padding: 0.65rem 1rem;
-      font-size: 0.95rem;
-      font-weight: 600;
-    }
-
-    .slot-dot {
-      width: 1rem;
-      height: 1rem;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .slot-label { flex: 1; }
-
-    .slot-status {
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: #64748b;
-    }
-
-    .slot-status.taken { color: #94a3b8; }
-    .slot-status.you   { color: #818cf8; }
-
-    .btn {
-      padding: 0.6rem 1.6rem;
-      border: none;
-      border-radius: 0.75rem;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: opacity 0.15s, transform 0.1s;
-    }
-
-    .btn:active { transform: scale(0.97); }
-    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
-
-    .btn-primary { background: #6366f1; color: #fff; }
-    .btn-primary:not(:disabled):hover { background: #818cf8; }
-
-    .btn-secondary { background: #334155; color: #cbd5e1; }
-    .btn-secondary:not(:disabled):hover { background: #475569; }
-
-    .hint { font-size: 0.85rem; color: #64748b; text-align: center; }
-
-    /* game */
-    #game { display: none; flex-direction: column; align-items: center; gap: 1.25rem; }
-
-    .status-bar {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      font-size: 1.15rem;
-      font-weight: 700;
-      min-height: 2rem;
-    }
-
-    .status-dot {
-      width: 1.1rem;
-      height: 1.1rem;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .turn-dots {
-      display: flex;
-      gap: 0.4rem;
-    }
-
-    .turn-dot {
-      width: 0.75rem;
-      height: 0.75rem;
-      border-radius: 50%;
-      opacity: 0.3;
-      transition: opacity 0.15s, transform 0.15s;
-    }
-
-    .turn-dot.active {
-      opacity: 1;
-      transform: scale(1.35);
-      outline: 2px solid #fff;
-      outline-offset: 2px;
-    }
-
-    /* board */
-    #board-wrap {
-      background: #1e293b;
-      border-radius: 1.25rem;
-      padding: 0.75rem;
-      box-shadow: 0 25px 50px rgba(0,0,0,0.6);
-    }
-
-    #board {
+    .panel-grid {
       display: grid;
-      gap: 5px;
+      gap: 14px;
+      grid-template-columns: repeat(12, 1fr);
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(6px);
+      padding: 14px;
+    }
+
+    .panel h2,
+    .panel h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-weight: 650;
+    }
+
+    .span-4 {
+      grid-column: span 4;
+    }
+
+    .span-8 {
+      grid-column: span 8;
+    }
+
+    .span-12 {
+      grid-column: span 12;
+    }
+
+    .form-row {
+      margin-bottom: 10px;
+      display: grid;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 0.92rem;
+      color: #cce8f7;
+    }
+
+    input,
+    select,
+    button {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font: inherit;
+      color: #082538;
+    }
+
+    input,
+    select {
+      background: #e9f6ff;
+    }
+
+    button {
+      background: linear-gradient(180deg, #f7bf2a, #e89b1c);
+      color: #2c1f00;
+      font-weight: 650;
+      cursor: pointer;
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: linear-gradient(180deg, #52c8ee, #2d99c3);
+      color: #042336;
+    }
+
+    .btn-danger {
+      background: linear-gradient(180deg, #ff8fa7, #ef476f);
+      color: #360713;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.28);
+    }
+
+    .error,
+    .notice {
+      margin-top: 8px;
+      min-height: 1.2em;
+      font-size: 0.9rem;
+    }
+
+    .error {
+      color: #ffafbf;
+    }
+
+    .notice {
+      color: #9de9cd;
+    }
+
+    .room-list {
+      display: grid;
+      gap: 8px;
+      max-height: 340px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .room-item {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 10px;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      background: rgba(9, 26, 39, 0.55);
+    }
+
+    .room-item strong {
+      font-size: 1rem;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    #roomView {
+      display: grid;
+      gap: 14px;
+    }
+
+    .top-bar {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 2fr 1fr;
+      align-items: start;
+    }
+
+    .room-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chip {
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.84rem;
+      color: #d9f0ff;
+      background: rgba(0, 0, 0, 0.16);
+    }
+
+    .status {
+      margin-top: 8px;
+      color: #ffe8af;
+      font-size: 1rem;
+      font-weight: 550;
+    }
+
+    .controls {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .players,
+    .scoreboard {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .slot-card {
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(6, 19, 28, 0.56);
+      min-height: 74px;
+      display: grid;
+      gap: 4px;
+      align-content: center;
+    }
+
+    .slot-card.me {
+      border-color: rgba(255, 255, 255, 0.55);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+    }
+
+    .slot-name {
+      font-weight: 700;
+    }
+
+    .slot-muted {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .board-wrap {
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 16px;
+      padding: 12px;
+      background: rgba(4, 15, 24, 0.65);
+      min-height: 380px;
+    }
+
+    .classic-controls {
+      display: grid;
+      gap: 6px;
+      grid-template-columns: repeat(9, minmax(0, 1fr));
+      margin-bottom: 8px;
+    }
+
+    .drop-btn {
+      padding: 8px 0;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.17);
+      color: #e8f8ff;
+      font-weight: 650;
+    }
+
+    .classic-grid {
+      display: grid;
+      gap: 6px;
+      grid-template-columns: repeat(9, minmax(0, 1fr));
+      align-items: center;
+      justify-items: center;
+      padding: 10px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(37, 94, 128, 0.86), rgba(22, 64, 89, 0.9));
     }
 
     .cell {
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      background: #0f172a;
-      border: none;
-      cursor: pointer;
-      transition: background 0.12s, transform 0.1s, box-shadow 0.12s;
+      width: min(8vw, 48px);
+      height: min(8vw, 48px);
+      border-radius: 999px;
+      background: rgba(6, 14, 25, 0.88);
+      border: 2px solid rgba(255, 255, 255, 0.12);
+      box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.45);
+      transition: transform 140ms ease;
+    }
+
+    .cell.win {
+      box-shadow: 0 0 0 3px #fff6c6, 0 0 18px rgba(255, 245, 187, 0.82);
+      transform: scale(1.08);
+    }
+
+    .piece-0 { background: radial-gradient(circle at 30% 25%, #ffadb0, #ef4444 65%); }
+    .piece-1 { background: radial-gradient(circle at 30% 25%, #fff2ab, #facc15 65%); }
+    .piece-2 { background: radial-gradient(circle at 30% 25%, #b8d5ff, #3b82f6 65%); }
+    .piece-3 { background: radial-gradient(circle at 30% 25%, #b6ffd3, #22c55e 65%); }
+
+    .board3d-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .board3d-shell {
+      width: 100%;
+      height: min(64vw, 560px);
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background:
+        radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.08), transparent 36%),
+        linear-gradient(180deg, rgba(9, 24, 35, 0.82), rgba(4, 14, 22, 0.92));
       position: relative;
+      perspective: 980px;
     }
 
-    @media (max-width: 540px) {
-      .cell { width: 38px; height: 38px; }
+    .board3d-help {
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      color: #bbe5f7;
+      font-size: 0.85rem;
+      background: rgba(2, 8, 12, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      padding: 4px 10px;
+      z-index: 6;
     }
 
-    .cell:hover.droppable { background: #334155; }
-    .cell.filled { cursor: default; }
-    .cell.winning {
-      transform: scale(1.12);
-      box-shadow: 0 0 0 3px #fff, 0 0 14px 4px currentColor;
-      z-index: 1;
+    .board3d-scene {
+      position: absolute;
+      inset: 0;
+      transform-style: preserve-3d;
+      cursor: grab;
+      display: grid;
+      place-items: center;
     }
 
-    .game-buttons { display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; }
+    .board3d-scene.dragging {
+      cursor: grabbing;
+    }
+
+    .board3d {
+      position: relative;
+      width: 0;
+      height: 0;
+      transform-style: preserve-3d;
+    }
+
+    .voxel {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      transform-style: preserve-3d;
+      border: 2px solid rgba(255, 255, 255, 0.13);
+      background: rgba(9, 20, 32, 0.88);
+      box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.45);
+    }
+
+    .voxel.win {
+      box-shadow: 0 0 0 2px #fff3c4, 0 0 20px rgba(255, 246, 186, 0.92);
+    }
+
+    .drop-node {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.2);
+      color: #ecfbff;
+      display: grid;
+      place-items: center;
+      font-size: 0.72rem;
+      user-select: none;
+      cursor: pointer;
+      z-index: 4;
+    }
+
+    .drop-node:hover {
+      filter: brightness(1.1);
+      transform: translateZ(1px);
+    }
+
+    .drop-node:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .drop-node.suggest-0 { background: rgba(239, 68, 68, 0.75); }
+    .drop-node.suggest-1 { background: rgba(250, 204, 21, 0.75); }
+    .drop-node.suggest-2 { background: rgba(59, 130, 246, 0.75); }
+    .drop-node.suggest-3 { background: rgba(34, 197, 94, 0.75); }
+
+    @media (max-width: 980px) {
+      .span-4,
+      .span-8 {
+        grid-column: span 12;
+      }
+
+      .top-bar {
+        grid-template-columns: 1fr;
+      }
+
+      .players,
+      .scoreboard {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .classic-controls,
+      .classic-grid {
+        gap: 4px;
+      }
+
+      .cell {
+        width: min(9vw, 42px);
+        height: min(9vw, 42px);
+      }
+    }
   </style>
 </head>
 <body>
-<div id="app">
-  <h1>Connect 4</h1>
+  <main class="app">
+    <header>
+      <h1 class="title">4-Player Connect 4 Arena</h1>
+      <p class="subtitle">Create private/public rooms, track wins in-session, and switch between Classic and 3D modes.</p>
+    </header>
 
-  <!-- Lobby -->
-  <div id="lobby">
-    <div class="slot-list" id="slot-list"></div>
-    <p class="hint" id="lobby-hint">Waiting for players&hellip;</p>
-    <button class="btn btn-primary" id="btn-start" disabled>Start Game</button>
-  </div>
+    <section id="lobbyView" class="panel-grid">
+      <article class="panel span-4">
+        <h2>Create Room</h2>
+        <div class="form-row">
+          <label for="createName">Room Name</label>
+          <input id="createName" type="text" maxlength="30" placeholder="Friday Game Night" />
+        </div>
+        <div class="form-row">
+          <label for="createMode">Game Mode</label>
+          <select id="createMode">
+            <option value="classic">Classic 2D</option>
+            <option value="3d">3D Connect 4</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="createVisibility">Room Visibility</label>
+          <select id="createVisibility">
+            <option value="public">Public room</option>
+            <option value="private">Private room (code only)</option>
+          </select>
+        </div>
+        <button id="createRoomBtn">Create Room</button>
+        <div id="createError" class="error"></div>
+      </article>
 
-  <!-- Game -->
-  <div id="game">
-    <div class="status-bar" id="status-bar"></div>
-    <div class="turn-dots" id="turn-dots"></div>
-    <div id="board-wrap"><div id="board"></div></div>
-    <div class="game-buttons" id="game-buttons"></div>
-  </div>
-</div>
+      <article class="panel span-4">
+        <h2>Join Private Room</h2>
+        <div class="form-row">
+          <label for="joinCode">Room Code</label>
+          <input id="joinCode" type="text" maxlength="10" placeholder="ABC123" />
+        </div>
+        <button id="joinCodeBtn" class="btn-secondary">Join By Code</button>
+        <div id="joinCodeError" class="error"></div>
+      </article>
 
-<script>
-(function () {
-  "use strict";
+      <article class="panel span-4">
+        <h2>Public Rooms</h2>
+        <div id="publicRooms" class="room-list"></div>
+      </article>
+    </section>
 
-  // constants
-  const ROWS = 7;
-  const COLS = 9;
+    <section id="roomView" class="hidden">
+      <article class="panel top-bar">
+        <div>
+          <div class="room-header">
+            <h2 id="roomTitle" style="margin:0;">Room</h2>
+            <span id="modeChip" class="chip">Mode</span>
+            <span id="visibilityChip" class="chip">Visibility</span>
+            <span id="codeChip" class="chip hidden"></span>
+            <span id="hostChip" class="chip hidden">You are host</span>
+          </div>
+          <div id="statusLine" class="status"></div>
+        </div>
+        <div class="controls">
+          <button id="startBtn" class="btn-secondary hidden">Start Game</button>
+          <button id="restartBtn" class="btn-secondary hidden">Restart Round</button>
+          <button id="rematchBtn" class="btn-secondary hidden">Rematch</button>
+          <button id="leaveBtn" class="btn-danger">Leave Room</button>
+        </div>
+      </article>
 
-  // state
-  let mySlot = null;   // assigned slot index (0-3)
-  let state  = null;   // last stateUpdate payload
+      <article class="panel">
+        <h3>Players</h3>
+        <div id="playersList" class="players"></div>
+      </article>
 
-  // socket
-  const socket = io();
+      <article class="panel">
+        <h3>Session Wins</h3>
+        <div id="scoreboard" class="scoreboard"></div>
+      </article>
 
-  socket.on("connect_error", () => showOverlay("Cannot connect to server."));
+      <article class="panel board-wrap">
+        <div id="classicArea"></div>
+        <div id="mode3dArea" class="hidden"></div>
+      </article>
+    </section>
+  </main>
 
-  socket.on("rejected", ({ reason }) => {
-    showOverlay(reason);
-  });
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
 
-  socket.on("assigned", ({ slotIndex }) => {
-    mySlot = slotIndex;
-  });
+    const lobbyView = document.getElementById("lobbyView");
+    const roomView = document.getElementById("roomView");
 
-  socket.on("stateUpdate", (newState) => {
-    state = newState;
-    render();
-  });
+    const createName = document.getElementById("createName");
+    const createMode = document.getElementById("createMode");
+    const createVisibility = document.getElementById("createVisibility");
+    const createRoomBtn = document.getElementById("createRoomBtn");
+    const createError = document.getElementById("createError");
 
-  // render
-  function render() {
-    if (!state) return;
+    const joinCode = document.getElementById("joinCode");
+    const joinCodeBtn = document.getElementById("joinCodeBtn");
+    const joinCodeError = document.getElementById("joinCodeError");
 
-    if (state.phase === "lobby") {
-      renderLobby();
-      showSection("lobby");
-    } else {
-      renderGame();
-      showSection("game");
+    const publicRoomsEl = document.getElementById("publicRooms");
+
+    const roomTitle = document.getElementById("roomTitle");
+    const modeChip = document.getElementById("modeChip");
+    const visibilityChip = document.getElementById("visibilityChip");
+    const codeChip = document.getElementById("codeChip");
+    const hostChip = document.getElementById("hostChip");
+    const statusLine = document.getElementById("statusLine");
+
+    const startBtn = document.getElementById("startBtn");
+    const restartBtn = document.getElementById("restartBtn");
+    const rematchBtn = document.getElementById("rematchBtn");
+    const leaveBtn = document.getElementById("leaveBtn");
+
+    const playersList = document.getElementById("playersList");
+    const scoreboard = document.getElementById("scoreboard");
+
+    const classicArea = document.getElementById("classicArea");
+    const mode3dArea = document.getElementById("mode3dArea");
+
+    const CLASSIC_ROWS = 7;
+    const CLASSIC_COLS = 9;
+    const D3_SIZE = 4;
+
+    let publicRooms = [];
+    let roomState = null;
+    let mySlotIndex = null;
+
+    const camera = {
+      rotX: -27,
+      rotY: 34,
+      panX: 0,
+      panY: 0,
+      layerSpacing: 78,
+      drag: null,
+    };
+
+    function showLobby() {
+      lobbyView.classList.remove("hidden");
+      roomView.classList.add("hidden");
     }
-  }
 
-  function showSection(which) {
-    document.getElementById("lobby").style.display = which === "lobby" ? "flex" : "none";
-    document.getElementById("game").style.display  = which === "game"  ? "flex" : "none";
-  }
+    function showRoom() {
+      lobbyView.classList.add("hidden");
+      roomView.classList.remove("hidden");
+    }
 
-  // lobby
-  function renderLobby() {
-    const list = document.getElementById("slot-list");
-    list.innerHTML = "";
+    function clearErrors() {
+      createError.textContent = "";
+      joinCodeError.textContent = "";
+    }
 
-    state.slots.forEach((slot, i) => {
-      const row = document.createElement("div");
-      row.className = "slot-row";
+    function activeSlots(state) {
+      return state.slots
+        .map((slot, index) => ({ slot, index }))
+        .filter(item => item.slot.occupied)
+        .map(item => item.index);
+    }
 
-      const dot = document.createElement("div");
-      dot.className = "slot-dot";
-      dot.style.background = slot.color;
+    function isHost() {
+      return roomState && mySlotIndex === roomState.hostSlot;
+    }
 
-      const label = document.createElement("div");
-      label.className = "slot-label";
-      label.textContent = slot.name;
+    function canPlayTurn() {
+      return roomState && roomState.phase === "playing" && mySlotIndex === roomState.currentSlot;
+    }
 
-      const status = document.createElement("div");
-      if (!slot.occupied) {
-        status.className = "slot-status";
-        status.textContent = "open";
-      } else if (i === mySlot) {
-        status.className = "slot-status you";
-        status.textContent = "you";
-      } else {
-        status.className = "slot-status taken";
-        status.textContent = "joined";
+    function playerNameFor(index) {
+      return roomState && roomState.slots[index] ? roomState.slots[index].name : `P${index + 1}`;
+    }
+
+    function playerColorFor(index) {
+      return roomState && roomState.slots[index] ? roomState.slots[index].color : "#ffffff";
+    }
+
+    function winningClassicSet(state) {
+      if (!state.winResult || !Array.isArray(state.winResult.cells)) return new Set();
+      const set = new Set();
+      for (const [r, c] of state.winResult.cells) {
+        set.add(`${r},${c}`);
+      }
+      return set;
+    }
+
+    function winning3DSet(state) {
+      if (!state.winResult || !Array.isArray(state.winResult.cells)) return new Set();
+      const set = new Set();
+      for (const [y, x, z] of state.winResult.cells) {
+        set.add(`${y},${x},${z}`);
+      }
+      return set;
+    }
+
+    function renderPublicRooms() {
+      publicRoomsEl.innerHTML = "";
+
+      if (publicRooms.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "meta";
+        empty.textContent = "No public rooms yet.";
+        publicRoomsEl.appendChild(empty);
+        return;
       }
 
-      row.append(dot, label, status);
-      list.appendChild(row);
-    });
+      for (const room of publicRooms) {
+        const item = document.createElement("div");
+        item.className = "room-item";
 
-    // Hint
-    const hintEl = document.getElementById("lobby-hint");
-    const occupied = state.slots.filter((s) => s.occupied).length;
-    if (mySlot === 0) {
-      hintEl.textContent =
-        occupied >= 2
-          ? `${occupied} players ready - you can start!`
-          : "Waiting for at least one more player...";
-    } else {
-      hintEl.textContent = "Waiting for the host to start the game…";
-    }
+        const left = document.createElement("div");
+        left.innerHTML = `
+          <strong>${escapeHtml(room.name)}</strong>
+          <div class="meta">
+            ${room.gameMode === "3d" ? "3D" : "Classic"} • ${room.playerCount}/${room.maxPlayers} players • ${room.phase}
+          </div>
+        `;
 
-    // Start button (host only, ≥2 players)
-    const btnStart = document.getElementById("btn-start");
-    if (mySlot === 0) {
-      btnStart.style.display = "";
-      btnStart.disabled = occupied < 2;
-    } else {
-      btnStart.style.display = "none";
-    }
-  }
+        const joinBtn = document.createElement("button");
+        joinBtn.className = "btn-secondary";
+        joinBtn.textContent = "Join";
+        joinBtn.disabled = room.phase !== "lobby" || !!roomState;
+        joinBtn.onclick = () => {
+          clearErrors();
+          socket.emit("joinRoom", { roomId: room.id }, (resp = {}) => {
+            if (resp.error) {
+              joinCodeError.textContent = resp.error;
+              return;
+            }
+            mySlotIndex = resp.slotIndex;
+          });
+        };
 
-  // game
-  function renderGame() {
-    renderStatusBar();
-    renderTurnDots();
-    renderBoard();
-    renderGameButtons();
-  }
-
-  function renderStatusBar() {
-    const bar = document.getElementById("status-bar");
-    bar.innerHTML = "";
-
-    if (state.phase === "ended") {
-      if (state.winResult) {
-        const ws = state.slots[state.winResult.slotIndex];
-        const dot = makeDot(ws.color);
-        const msg = document.createTextNode(`${ws.name} wins!`);
-        bar.style.color = ws.color;
-        bar.append(dot, msg);
-      } else {
-        bar.style.color = "#94a3b8";
-        bar.textContent = "It's a draw!";
+        item.appendChild(left);
+        item.appendChild(joinBtn);
+        publicRoomsEl.appendChild(item);
       }
-    } else {
-      const cs = state.slots[state.currentSlot];
-      if (!cs || !cs.occupied) return;
-      const dot = makeDot(cs.color);
-      const isMe = state.currentSlot === mySlot;
-      const msg = document.createTextNode(isMe ? "Your turn!" : `${cs.name}'s turn`);
-      bar.style.color = cs.color;
-      bar.append(dot, msg);
-    }
-  }
-
-  function makeDot(color) {
-    const d = document.createElement("div");
-    d.className = "status-dot";
-    d.style.background = color;
-    return d;
-  }
-
-  function renderTurnDots() {
-    const container = document.getElementById("turn-dots");
-    container.innerHTML = "";
-    state.slots.forEach((slot, i) => {
-      if (!slot.occupied) return;
-      const d = document.createElement("div");
-      d.className = "turn-dot" + (i === state.currentSlot && state.phase === "playing" ? " active" : "");
-      d.style.background = slot.color;
-      container.appendChild(d);
-    });
-  }
-
-  function renderBoard() {
-    const boardEl = document.getElementById("board");
-    boardEl.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
-
-    // Build win cell set
-    const winSet = new Set();
-    if (state.winResult) {
-      state.winResult.cells.forEach(([r, c]) => winSet.add(`${r},${c}`));
     }
 
-    const isMyTurn = state.phase === "playing" && state.currentSlot === mySlot;
+    function renderRoom() {
+      if (!roomState) {
+        showLobby();
+        return;
+      }
 
-    // Re-use or recreate cells
-    const needed = ROWS * COLS;
-    while (boardEl.children.length < needed) boardEl.appendChild(document.createElement("button"));
-    while (boardEl.children.length > needed) boardEl.removeChild(boardEl.lastChild);
+      showRoom();
+      renderRoomHeader();
+      renderPlayers();
+      renderScoreboard();
+      renderControls();
 
-    let idx = 0;
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const cell = boardEl.children[idx++];
-        const value = state.board[r][c]; // null | slotIndex
+      if (roomState.gameMode === "classic") {
+        mode3dArea.classList.add("hidden");
+        classicArea.classList.remove("hidden");
+        renderClassicBoard();
+      } else {
+        classicArea.classList.add("hidden");
+        mode3dArea.classList.remove("hidden");
+        render3DBoard();
+      }
+    }
 
-        // Reset classes
-        cell.className = "cell";
-        cell.style.background = "";
-        cell.style.color = "";
-        cell.style.boxShadow = "";
-        cell.removeAttribute("data-col");
+    function renderRoomHeader() {
+      roomTitle.textContent = `${roomState.name} (#${roomState.id})`;
+      modeChip.textContent = roomState.gameMode === "3d" ? "3D Connect 4" : "Classic Connect 4";
+      visibilityChip.textContent = roomState.isPublic ? "Public room" : "Private room";
 
-        if (value !== null) {
-          cell.classList.add("filled");
-          cell.style.background = state.slots[value].color;
-          cell.disabled = true;
+      if (roomState.code) {
+        codeChip.textContent = `Code: ${roomState.code}`;
+        codeChip.classList.remove("hidden");
+      } else {
+        codeChip.classList.add("hidden");
+      }
 
-          if (winSet.has(`${r},${c}`)) {
-            cell.classList.add("winning");
-            cell.style.color = state.slots[value].color;
+      hostChip.classList.toggle("hidden", !isHost());
+      statusLine.textContent = buildStatusMessage();
+    }
+
+    function buildStatusMessage() {
+      if (!roomState) return "";
+
+      if (roomState.phase === "lobby") {
+        const players = activeSlots(roomState).length;
+        if (isHost()) {
+          if (players < 2) return "You are host. Need at least 2 players to start.";
+          return "You are host. Start when everyone is ready.";
+        }
+        return "Waiting for host to start the game.";
+      }
+
+      if (roomState.phase === "playing") {
+        const current = roomState.currentSlot;
+        if (current === mySlotIndex) return "Your turn. Drop a disc.";
+        return `${playerNameFor(current)}'s turn.`;
+      }
+
+      if (roomState.phase === "ended") {
+        if (roomState.winResult && typeof roomState.winResult.slotIndex === "number") {
+          return `${playerNameFor(roomState.winResult.slotIndex)} wins this round.`;
+        }
+        return "Round ended. Host can rematch or restart.";
+      }
+
+      return "";
+    }
+
+    function renderPlayers() {
+      playersList.innerHTML = "";
+      roomState.slots.forEach((slot, index) => {
+        const card = document.createElement("div");
+        card.className = "slot-card" + (index === mySlotIndex ? " me" : "");
+        card.innerHTML = `
+          <div class="slot-name" style="color:${slot.color};">${slot.name}${index === mySlotIndex ? " (You)" : ""}</div>
+          <div class="slot-muted">${slot.occupied ? "Connected" : "Open slot"}</div>
+        `;
+        playersList.appendChild(card);
+      });
+    }
+
+    function renderScoreboard() {
+      scoreboard.innerHTML = "";
+      roomState.slots.forEach((slot, index) => {
+        const card = document.createElement("div");
+        card.className = "slot-card" + (index === mySlotIndex ? " me" : "");
+        card.innerHTML = `
+          <div class="slot-name" style="color:${slot.color};">${slot.name}</div>
+          <div class="slot-muted">Wins: ${roomState.wins[index] || 0}</div>
+        `;
+        scoreboard.appendChild(card);
+      });
+    }
+
+    function renderControls() {
+      const host = isHost();
+      const canStart = roomState.phase === "lobby" && activeSlots(roomState).length >= 2 && host;
+      const canRestart = host && (roomState.phase === "playing" || roomState.phase === "ended");
+      const canRematch = host && roomState.phase === "ended";
+
+      startBtn.classList.toggle("hidden", !canStart);
+      restartBtn.classList.toggle("hidden", !canRestart);
+      rematchBtn.classList.toggle("hidden", !canRematch);
+    }
+
+    function renderClassicBoard() {
+      if (!roomState.board) {
+        classicArea.innerHTML = "<p class='meta'>Board will appear when the host starts the game.</p>";
+        return;
+      }
+
+      const canDrop = canPlayTurn();
+      const wins = winningClassicSet(roomState);
+
+      const wrapper = document.createElement("div");
+
+      const controls = document.createElement("div");
+      controls.className = "classic-controls";
+      for (let c = 0; c < CLASSIC_COLS; c++) {
+        const btn = document.createElement("button");
+        btn.className = "drop-btn";
+        btn.textContent = "Drop";
+        btn.disabled = !canDrop;
+        btn.onclick = () => socket.emit("dropDisc", { col: c });
+        controls.appendChild(btn);
+      }
+
+      const grid = document.createElement("div");
+      grid.className = "classic-grid";
+      for (let r = 0; r < CLASSIC_ROWS; r++) {
+        for (let c = 0; c < CLASSIC_COLS; c++) {
+          const cell = document.createElement("div");
+          const v = roomState.board[r][c];
+          cell.className = "cell";
+          if (typeof v === "number") {
+            cell.classList.add(`piece-${v}`);
           }
-        } else {
-          cell.disabled = false;
-          if (isMyTurn) {
-            cell.classList.add("droppable");
-            cell.setAttribute("data-col", c);
-          } else {
-            cell.disabled = true;
+          if (wins.has(`${r},${c}`)) {
+            cell.classList.add("win");
+          }
+          grid.appendChild(cell);
+        }
+      }
+
+      wrapper.appendChild(controls);
+      wrapper.appendChild(grid);
+      classicArea.innerHTML = "";
+      classicArea.appendChild(wrapper);
+    }
+
+    function buildDropAvailability() {
+      const open = [];
+      for (let x = 0; x < D3_SIZE; x++) {
+        for (let z = 0; z < D3_SIZE; z++) {
+          open.push({ x, z, open: roomState.board[D3_SIZE - 1][x][z] === null });
+        }
+      }
+      return open;
+    }
+
+    function render3DBoard() {
+      if (!roomState.board) {
+        mode3dArea.innerHTML = "<p class='meta'>Board will appear when the host starts the game.</p>";
+        return;
+      }
+
+      const canDrop = canPlayTurn();
+      const wins = winning3DSet(roomState);
+
+      mode3dArea.innerHTML = `
+        <div class="board3d-controls">
+          <label for="layerSpacing">Layer spacing</label>
+          <input id="layerSpacing" type="range" min="42" max="130" step="1" value="${camera.layerSpacing}" style="max-width:240px;" />
+          <button id="resetCamera" class="btn-ghost" style="width:auto;padding:8px 12px;">Reset camera</button>
+        </div>
+        <div class="board3d-shell" id="board3dShell">
+          <div class="board3d-help">Drag to pan around • Hold Shift+Drag to move scene • Use slider to shrink/expand layers</div>
+          <div class="board3d-scene" id="board3dScene">
+            <div class="board3d" id="board3d"></div>
+          </div>
+        </div>
+      `;
+
+      const scene = document.getElementById("board3dScene");
+      const board = document.getElementById("board3d");
+      const spacingInput = document.getElementById("layerSpacing");
+      const resetCameraBtn = document.getElementById("resetCamera");
+
+      applyCamera(scene);
+      wireScenePan(scene);
+
+      spacingInput.oninput = () => {
+        camera.layerSpacing = Number(spacingInput.value);
+        draw3DCells(board, wins, canDrop);
+      };
+
+      resetCameraBtn.onclick = () => {
+        camera.rotX = -27;
+        camera.rotY = 34;
+        camera.panX = 0;
+        camera.panY = 0;
+        applyCamera(scene);
+      };
+
+      draw3DCells(board, wins, canDrop);
+    }
+
+    function draw3DCells(board, wins, canDrop) {
+      board.innerHTML = "";
+
+      const step = 64;
+      const center = (D3_SIZE - 1) / 2;
+      const layerStep = camera.layerSpacing;
+
+      for (let y = 0; y < D3_SIZE; y++) {
+        for (let x = 0; x < D3_SIZE; x++) {
+          for (let z = 0; z < D3_SIZE; z++) {
+            const tx = (x - center) * step;
+            const tz = (z - center) * step;
+            const ty = (y - center) * layerStep;
+
+            const voxel = document.createElement("div");
+            voxel.className = "voxel";
+            voxel.style.transform = `translate3d(${tx}px, ${-ty}px, ${tz}px)`;
+
+            const value = roomState.board[y][x][z];
+            if (typeof value === "number") {
+              voxel.classList.add(`piece-${value}`);
+            }
+            if (wins.has(`${y},${x},${z}`)) {
+              voxel.classList.add("win");
+            }
+
+            board.appendChild(voxel);
           }
         }
       }
+
+      const topY = (D3_SIZE / 2) * layerStep + 54;
+      const availability = buildDropAvailability();
+      for (const col of availability) {
+        const tx = (col.x - center) * step;
+        const tz = (col.z - center) * step;
+
+        const node = document.createElement("button");
+        node.type = "button";
+        node.className = "drop-node";
+        if (canDrop && col.open) {
+          node.classList.add(`suggest-${mySlotIndex}`);
+        }
+        node.style.transform = `translate3d(${tx}px, ${-topY}px, ${tz}px)`;
+        node.textContent = `${col.x},${col.z}`;
+        node.disabled = !canDrop || !col.open;
+        node.onclick = () => socket.emit("dropDisc3D", { x: col.x, z: col.z });
+        board.appendChild(node);
+      }
     }
-  }
 
-  function renderGameButtons() {
-    const container = document.getElementById("game-buttons");
-    container.innerHTML = "";
+    function wireScenePan(scene) {
+      scene.oncontextmenu = (evt) => evt.preventDefault();
 
-    if (state.phase === "ended" && mySlot === 0) {
-      const btn = document.createElement("button");
-      btn.className = "btn btn-primary";
-      btn.textContent = "Rematch";
-      btn.addEventListener("click", () => socket.emit("rematch"));
-      container.appendChild(btn);
+      scene.onpointerdown = (evt) => {
+        camera.drag = {
+          x: evt.clientX,
+          y: evt.clientY,
+          shift: evt.shiftKey,
+          pointerId: evt.pointerId,
+        };
+        scene.setPointerCapture(evt.pointerId);
+        scene.classList.add("dragging");
+      };
+
+      scene.onpointermove = (evt) => {
+        if (!camera.drag || evt.pointerId !== camera.drag.pointerId) return;
+
+        const dx = evt.clientX - camera.drag.x;
+        const dy = evt.clientY - camera.drag.y;
+
+        if (camera.drag.shift) {
+          camera.panX += dx;
+          camera.panY += dy;
+        } else {
+          camera.rotY += dx * 0.42;
+          camera.rotX += dy * 0.36;
+          if (camera.rotX < -85) camera.rotX = -85;
+          if (camera.rotX > 85) camera.rotX = 85;
+        }
+
+        camera.drag.x = evt.clientX;
+        camera.drag.y = evt.clientY;
+        applyCamera(scene);
+      };
+
+      scene.onpointerup = (evt) => {
+        if (camera.drag && evt.pointerId === camera.drag.pointerId) {
+          scene.releasePointerCapture(evt.pointerId);
+          camera.drag = null;
+          scene.classList.remove("dragging");
+        }
+      };
+
+      scene.onpointercancel = () => {
+        camera.drag = null;
+        scene.classList.remove("dragging");
+      };
     }
-  }
 
-  // board click (delegated)
-  document.getElementById("board").addEventListener("click", (e) => {
-    const cell = e.target.closest(".cell[data-col]");
-    if (!cell) return;
-    const col = parseInt(cell.getAttribute("data-col"), 10);
-    socket.emit("dropDisc", { col });
-  });
+    function applyCamera(scene) {
+      scene.style.transform = `translate(${camera.panX}px, ${camera.panY}px) rotateX(${camera.rotX}deg) rotateY(${camera.rotY}deg)`;
+    }
 
-  // start button
-  document.getElementById("btn-start").addEventListener("click", () => {
-    socket.emit("startGame");
-  });
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
 
-  // show a full-screen message (connection errors, rejection)
-  function showOverlay(message) {
-    let ov = document.getElementById("overlay");
-    if (!ov) {
-      ov = document.createElement("div");
-      ov.id = "overlay";
-      Object.assign(ov.style, {
-        position: "fixed", inset: "0",
-        background: "rgba(15,23,42,0.92)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: "1.2rem", fontWeight: "700", color: "#f87171",
-        zIndex: "999",
+    createRoomBtn.onclick = () => {
+      if (roomState) return;
+      clearErrors();
+
+      const payload = {
+        name: createName.value.trim(),
+        isPublic: createVisibility.value === "public",
+        gameMode: createMode.value === "3d" ? "3d" : "classic",
+      };
+
+      socket.emit("createRoom", payload, (resp = {}) => {
+        if (resp.error) {
+          createError.textContent = resp.error;
+          return;
+        }
+        mySlotIndex = resp.slotIndex;
       });
-      document.body.appendChild(ov);
-    }
-    ov.textContent = message;
-  }
-}());
-</script>
+    };
+
+    joinCodeBtn.onclick = () => {
+      if (roomState) return;
+      clearErrors();
+      const code = joinCode.value.trim().toUpperCase();
+      if (!code) {
+        joinCodeError.textContent = "Enter a room code.";
+        return;
+      }
+
+      socket.emit("joinByCode", { code }, (resp = {}) => {
+        if (resp.error) {
+          joinCodeError.textContent = resp.error;
+          return;
+        }
+        mySlotIndex = resp.slotIndex;
+      });
+    };
+
+    startBtn.onclick = () => socket.emit("startGame");
+    restartBtn.onclick = () => socket.emit("restart");
+    rematchBtn.onclick = () => socket.emit("rematch");
+
+    leaveBtn.onclick = () => {
+      socket.emit("leaveRoom");
+      roomState = null;
+      mySlotIndex = null;
+      showLobby();
+      renderPublicRooms();
+    };
+
+    socket.on("roomState", (state) => {
+      roomState = state;
+      renderRoom();
+    });
+
+    socket.on("publicRooms", (rooms) => {
+      publicRooms = Array.isArray(rooms) ? rooms : [];
+      renderPublicRooms();
+    });
+
+    socket.on("connect", () => {
+      socket.emit("listRooms", {}, (rooms) => {
+        publicRooms = Array.isArray(rooms) ? rooms : [];
+        renderPublicRooms();
+      });
+    });
+
+    socket.on("disconnect", () => {
+      if (!roomState) return;
+      statusLine.textContent = "Connection lost. Reconnecting...";
+    });
+
+    showLobby();
+    renderPublicRooms();
+  </script>
 </body>
 </html>
