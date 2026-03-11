@@ -392,13 +392,16 @@ server.listen(PORT, "0.0.0.0", () => {
   const addrs = [];
   for (const name of Object.keys(nets)) {
     for (const n of nets[name]) {
-      if (n.family === "IPv4" && !n.internal) addrs.push(n.address);
+      if (n.family === "IPv4" && !n.internal) addrs.push({ address: n.address, iface: name });
     }
   }
-  // Prefer a typical LAN address (192.168.x or 10.x), otherwise use the first available
+  // Prefer real LAN interfaces (en*, eth*, wlan*) with a private address over tunnels/VPNs
+  const isRealIface = name => /^(en|eth|wlan|wlp|ens|eno)\d/i.test(name);
+  const isLanAddr = a => a.startsWith("192.168.") || a.startsWith("10.") || /^172\.(1[6-9]|2\d|3[01])\./.test(a);
   const networkAddr =
-    addrs.find(a => a.startsWith("192.168.") || a.startsWith("10.")) ||
-    addrs[0];
+    (addrs.find(({ address, iface }) => isRealIface(iface) && isLanAddr(address)) ||
+     addrs.find(({ address }) => isLanAddr(address)) ||
+     addrs[0])?.address;
   console.log(`\n  Connect 4 server running!\n`);
   console.log(`  Local:   http://localhost:${PORT}`);
   if (networkAddr) console.log(`  Network: http://${networkAddr}:${PORT}`);
