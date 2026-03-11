@@ -45,8 +45,3 @@ To stop the server, press `Ctrl+C` in the same terminal window where it's runnin
 ## Requirements
 
 - **Node.js**, which is the runtime that actually executes the server code. Download it from [nodejs.org](https://nodejs.org) (just grab the LTS version). Running `npm install` after cloning will automatically install everything else.
-
-## Stack
-
-- **Express** — is the `index.html` and any other static files to players' browsers when they visit the URL.
-- **Socket.io** — It is used to keep all players in sync in real-time
