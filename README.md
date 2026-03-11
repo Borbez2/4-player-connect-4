@@ -31,11 +31,7 @@ You should see something like:
 
 Copy the Network URL and share it with other players on the same WiFi.
 
-To stop the server, press `Ctrl+C` in the same terminal window where it's running. If it doesn't respond, run:
-
-```bash
-kill $(lsof -t -i:4321)
-```
+To stop the server, press `Ctrl+C` in the same terminal window where it's running. 
 
 ## How it works
 
